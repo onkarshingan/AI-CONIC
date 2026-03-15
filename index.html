@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MIT Vishwaprayag — Smart Attendance System</title>
+<meta name="description" content="AI-powered Smart Attendance System for MIT Vishwaprayag University. Face liveness detection, parent alerts, competition leaderboard and more."/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+<!-- ═══════════════════════════════════════
+     ALL CSS
+═══════════════════════════════════════ -->
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #04070f;
+  --bg2:      #070c18;
+  --surface:  #0b1220;
+  --surface2: #0f1929;
+  --border:   rgba(255,255,255,.07);
+  --accent:   #00f5c3;
+  --accent2:  #38bdf8;
+  --purple:   #a78bfa;
+  --red:      #ff4d6d;
+  --amber:    #f59e0b;
+  --text:     #e2e8f0;
+  --muted:    #475569;
+  --muted2:   #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; display: block; }
+button { cursor: pointer; font-family: var(--font-body); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 10px; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:none; } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes float    { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-14px); } }
+@keyframes pulse    { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+@keyframes spin     { to { transform:rotate(360deg); } }
+@keyframes orbit    { from{transform:rotate(0deg) translateX(110px) rotate(0deg)} to{transform:rotate(360deg) translateX(110px) rotate(-360deg)} }
+@keyframes orbit2   { from{transform:rotate(120deg) translateX(80px) rotate(-120deg)} to{transform:rotate(480deg) translateX(80px) rotate(-480deg)} }
+@keyframes orbit3   { from{transform:rotate(240deg) translateX(145px) rotate(-240deg)} to{transform:rotate(600deg) translateX(145px) rotate(-600deg)} }
+@keyframes shine    { 0%{left:-80%} 100%{left:120%} }
+@keyframes bgGlow   { 0%,100%{opacity:.4} 50%{opacity:.9} }
+@keyframes scanLine { 0%{top:5%} 100%{top:92%} }
+@keyframes bounce   { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-12px)} }
+@keyframes gradShift{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes typewriter { from{width:0} to{width:100%} }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes countUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+@keyframes navSlide { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:none} }
+@keyframes cardHover { to{transform:translateY(-6px); box-shadow:0 20px 60px rgba(0,245,195,.12); } }
+
+/* ── UTILITY ── */
+.animate-fade-up  { animation: fadeUp .7s ease forwards; }
+.animate-fade-in  { animation: fadeIn .6s ease forwards; }
+.hidden { opacity: 0; transform: translateY(30px); transition: opacity .7s ease, transform .7s ease; }
+.visible { opacity: 1 !important; transform: none !important; }
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-warm {
+  background: linear-gradient(135deg, #f59e0b, #ff4d6d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ════════════════════════════════════════
+   NAVBAR
+════════════════════════════════════════ */
+#navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  background: rgba(4,7,15,.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 5%;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 62px;
+  animation: navSlide .5s ease;
+  transition: background .3s;
+}
+#navbar.scrolled { background: rgba(4,7,15,.98); }
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.nav-logo {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+  box-shadow: 0 0 14px rgba(0,245,195,.3);
+}
+.nav-title { font-family: var(--font-display); font-weight: 800; font-size: 14px; color: var(--accent); letter-spacing: -.2px; }
+.nav-sub { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+.nav-links { display: flex; align-items: center; gap: 6px; }
+.nav-link {
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  color: var(--muted); transition: all .2s; border: none; background: none;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.nav-cta {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #000; border: none; padding: 8px 20px; border-radius: 22px;
+  font-size: 13px; font-weight: 800; font-family: var(--font-display);
+  transition: all .2s; box-shadow: 0 4px 18px rgba(0,245,195,.25);
+}
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(0,245,195,.35); }
+.hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; padding: 6px; }
+.hamburger span { width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: all .3s; display: block; }
+.mobile-menu { display: none; }
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+#hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 100px 5% 60px;
+  position: relative; overflow: hidden;
+}
+.hero-bg-grid {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,245,195,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,245,195,.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+.hero-bg-glow1 {
+  position: absolute; top: -20%; left: -10%; width: 70vw; height: 70vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,245,195,.06) 0%, transparent 68%);
+  pointer-events: none; animation: bgGlow 5s ease-in-out infinite;
+}
+.hero-bg-glow2 {
+  position: absolute; bottom: -15%; right: -10%; width: 55vw; height: 55vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,189,248,.05) 0%, transparent 68%);
+  pointer-events: none; animation: bgGlow 6s ease-in-out infinite reverse;
+}
+.hero-content { position: relative; z-index: 1; max-width: 820px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,245,195,.07); border: 1px solid rgba(0,245,195,.2);
+  border-radius: 22px; padding: 6px 18px;
+  font-size: 12px; color: var(--accent); font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 24px;
+  animation: fadeIn .8s .1s ease both;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.hero-title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(34px, 6vw, 68px);
+  line-height: 1.08; letter-spacing: -2px;
+  margin-bottom: 22px;
+  animation: fadeUp .8s .2s ease both;
+}
+.hero-subtitle {
+  font-size: clamp(15px, 2vw, 18px); color: var(--muted);
+  max-width: 580px; margin: 0 auto 40px;
+  line-height: 1.75;
+  animation: fadeUp .8s .35s ease both;
+}
+.hero-btns {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  animation: fadeUp .8s .48s ease both;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #000; border: none; padding: 14px 36px; border-radius: 30px;
+  font-size: 15px; font-weight: 800; font-family: var(--font-display);
+  box-shadow: 0 8px 30px rgba(0,245,195,.3); transition: all .25s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(0,245,195,.4); }
+.btn-secondary {
+  background: rgba(255,255,255,.04); color: var(--text);
+  border: 1px solid var(--border); padding: 14px 32px; border-radius: 30px;
+  font-size: 15px; font-weight: 600; transition: all .25s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-secondary:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); }
+
+/* HERO ORBS */
+.orb-wrap {
+  position: relative; width: 260px; height: 260px; margin: 52px auto 0;
+  animation: fadeUp .8s .6s ease both;
+}
+.orb-core {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+.orb-inner {
+  width: 98px; height: 98px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44px;
+  box-shadow: 0 0 60px rgba(0,245,195,.3), 0 0 120px rgba(0,245,195,.1);
+  animation: bounce 3.5s ease-in-out infinite;
+}
+.orb-ring1 { position: absolute; inset: 10px; border-radius: 50%; border: 1px dashed rgba(0,245,195,.15); pointer-events: none; }
+.orb-ring2 { position: absolute; inset: 28px; border-radius: 50%; border: 1px dashed rgba(56,189,248,.1); pointer-events: none; }
+.orb-dot {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+.orb-dot span {
+  width: 10px; height: 10px; border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* HERO STATS */
+.hero-stats {
+  display: flex; justify-content: center; gap: 0;
+  margin-top: 56px; padding-top: 40px;
+  border-top: 1px solid var(--border);
+  animation: fadeUp .8s .75s ease both;
+}
+.hero-stat {
+  padding: 0 36px; text-align: center;
+  border-right: 1px solid var(--border);
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-val {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 32px; line-height: 1;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-stat-label { font-size: 11px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ════════════════════════════════════════
+   SECTION BASE
+════════════════════════════════════════ */
+section { padding: 96px 5%; }
+.section-tag {
+  display: inline-block;
+  background: rgba(0,245,195,.07); border: 1px solid rgba(0,245,195,.2);
+  border-radius: 22px; padding: 5px 16px;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 16px;
+}
+.section-title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(26px, 4vw, 44px); letter-spacing: -1.2px;
+  line-height: 1.1; margin-bottom: 14px;
+}
+.section-sub {
+  font-size: 16px; color: var(--muted); max-width: 560px; line-height: 1.7;
+}
+.section-head { text-align: center; margin-bottom: 60px; }
+.section-head .section-sub { margin: 0 auto; }
+
+/* ════════════════════════════════════════
+   MARQUEE STRIP
+════════════════════════════════════════ */
+.marquee-strip {
+  background: linear-gradient(135deg, rgba(0,245,195,.06), rgba(56,189,248,.04));
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 16px 0; overflow: hidden; white-space: nowrap;
+}
+.marquee-inner { display: inline-flex; animation: marquee 20s linear infinite; }
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.marquee-item {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 0 32px; font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.marquee-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* ════════════════════════════════════════
+   FEATURES SECTION
+════════════════════════════════════════ */
+#features { background: var(--bg2); }
+.features-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+}
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 28px; position: relative; overflow: hidden;
+  transition: all .3s; cursor: default;
+}
+.feature-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(0,245,195,.25);
+  box-shadow: 0 24px 60px rgba(0,0,0,.4), 0 0 0 1px rgba(0,245,195,.1);
+}
+.feature-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 0% 0%, var(--glow-c, rgba(0,245,195,.06)) 0%, transparent 60%);
+  pointer-events: none; transition: opacity .3s;
+}
+.feature-card:hover::before { opacity: 1.5; }
+.feature-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: var(--ico-bg, rgba(0,245,195,.1));
+  border: 1px solid var(--ico-brd, rgba(0,245,195,.2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; margin-bottom: 18px;
+}
+.feature-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 17px; margin-bottom: 9px;
+}
+.feature-desc { font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+.feature-tag {
+  display: inline-block; margin-top: 14px;
+  background: var(--tag-bg, rgba(0,245,195,.08));
+  color: var(--tag-c, var(--accent));
+  border: 1px solid var(--tag-brd, rgba(0,245,195,.2));
+  border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700;
+}
+/* Feature card accent line */
+.feature-card::after {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--line-c1, var(--accent)), var(--line-c2, var(--accent2)));
+}
+
+/* ════════════════════════════════════════
+   BRANCHES SECTION
+════════════════════════════════════════ */
+#branches { background: var(--bg); }
+.branches-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+}
+.branch-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 22px 20px; position: relative; overflow: hidden;
+  transition: all .25s;
+}
+.branch-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--b-c);
+  box-shadow: 0 16px 48px rgba(0,0,0,.35);
+}
+.branch-card::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--b-c);
+}
+.branch-icon {
+  width: 42px; height: 42px; border-radius: 11px;
+  background: color-mix(in srgb, var(--b-c) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--b-c) 30%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 14px;
+}
+.branch-name {
+  font-family: var(--font-display); font-weight: 800; font-size: 15px; margin-bottom: 4px;
+  color: var(--b-c);
+}
+.branch-full { font-size: 11px; color: var(--muted); line-height: 1.4; margin-bottom: 14px; }
+.branch-meta { display: flex; gap: 10px; }
+.branch-meta span {
+  font-size: 11px; font-weight: 700;
+  background: color-mix(in srgb, var(--b-c) 10%, transparent);
+  color: var(--b-c);
+  border-radius: 20px; padding: 2px 9px;
+  border: 1px solid color-mix(in srgb, var(--b-c) 25%, transparent);
+}
+
+/* ════════════════════════════════════════
+   HOW IT WORKS
+════════════════════════════════════════ */
+#how { background: var(--bg2); }
+.how-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+}
+.how-steps { display: flex; flex-direction: column; gap: 24px; }
+.how-step {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 20px; border-radius: 14px; border: 1px solid transparent;
+  transition: all .3s; cursor: default;
+}
+.how-step:hover {
+  background: var(--surface); border-color: var(--border);
+  transform: translateX(4px);
+}
+.how-step-num {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,245,195,.1); border: 1px solid rgba(0,245,195,.3);
+  color: var(--accent); font-family: var(--font-display); font-weight: 800;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+}
+.how-step-title { font-weight: 700; font-size: 15px; margin-bottom: 5px; }
+.how-step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.how-visual {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 24px; padding: 30px; position: relative; overflow: hidden;
+}
+.how-visual::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(0,245,195,.05), transparent 60%);
+}
+.scanner-demo {
+  background: #000; border-radius: 14px; aspect-ratio: 4/3;
+  position: relative; overflow: hidden; margin-bottom: 18px;
+}
+.scanner-face-bg {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0a1525, #050d1a);
+}
+.scanner-face { font-size: 80px; animation: float 3s ease-in-out infinite; }
+.scanner-scan-line {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: scanLine 2s ease-in-out infinite;
+}
+.scanner-corners > div {
+  position: absolute; width: 22px; height: 22px;
+}
+.scanner-corners > div:nth-child(1) { top: 14px; left: 14px; border-top: 3px solid var(--accent); border-left: 3px solid var(--accent); border-radius: 4px 0 0 0; }
+.scanner-corners > div:nth-child(2) { top: 14px; right: 14px; border-top: 3px solid var(--accent); border-right: 3px solid var(--accent); border-radius: 0 4px 0 0; }
+.scanner-corners > div:nth-child(3) { bottom: 14px; left: 14px; border-bottom: 3px solid var(--accent); border-left: 3px solid var(--accent); border-radius: 0 0 0 4px; }
+.scanner-corners > div:nth-child(4) { bottom: 14px; right: 14px; border-bottom: 3px solid var(--accent); border-right: 3px solid var(--accent); border-radius: 0 0 4px 0; }
+.scanner-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-radius: 10px;
+  background: rgba(0,245,195,.07); border: 1px solid rgba(0,245,195,.2);
+  font-size: 13px; color: var(--accent); font-weight: 600;
+}
+.scanner-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+
+/* ════════════════════════════════════════
+   STATS / NUMBERS
+════════════════════════════════════════ */
+#stats {
+  background: linear-gradient(135deg, rgba(0,245,195,.04), rgba(56,189,248,.03));
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 64px 5%;
+}
+.stats-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+  max-width: 1100px; margin: 0 auto;
+}
+.stat-box {
+  text-align: center; padding: 24px 16px;
+  border-right: 1px solid var(--border);
+}
+.stat-box:last-child { border-right: none; }
+.stat-num {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(28px, 4vw, 46px); line-height: 1;
+}
+.stat-unit { font-size: 22px; color: var(--accent); }
+.stat-lbl { font-size: 12px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ════════════════════════════════════════
+   LEADERBOARD PREVIEW
+════════════════════════════════════════ */
+#leaderboard { background: var(--bg); }
+.leaderboard-wrap { max-width: 760px; margin: 0 auto; }
+.podium {
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 12px; margin-bottom: 28px;
+}
+.podium-item { display: flex; flex-direction: column; align-items: center; width: 160px; }
+.podium-avatar {
+  width: 58px; height: 58px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 20px; margin-bottom: 8px;
+  border: 3px solid var(--pod-c); color: var(--pod-c);
+  background: color-mix(in srgb, var(--pod-c) 15%, transparent);
+}
+.podium-name { font-weight: 700; font-size: 13px; text-align: center; }
+.podium-roll { font-size: 11px; color: var(--muted); }
+.podium-pct { font-family: var(--font-display); font-weight: 800; font-size: 22px; color: var(--pod-c); margin: 5px 0 2px; }
+.podium-days { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.podium-base {
+  width: 100%; border-radius: 12px 12px 0 0;
+  border: 2px solid color-mix(in srgb, var(--pod-c) 40%, transparent);
+  border-bottom: none;
+  background: color-mix(in srgb, var(--pod-c) 10%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.podium-rank { font-family: var(--font-display); font-weight: 800; font-size: 36px; color: var(--pod-c); opacity: .18; }
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table th {
+  padding: 9px 14px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); background: var(--surface);
+  border-bottom: 1px solid var(--border); text-align: left;
+}
+.lb-table td { padding: 12px 14px; font-size: 13px; border-top: 1px solid rgba(255,255,255,.04); }
+.lb-table tr:hover td { background: rgba(255,255,255,.02); }
+.lb-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(0,245,195,.15); border: 1.5px solid rgba(0,245,195,.4);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: var(--accent); margin-right: 8px;
+}
+.lb-bar-wrap { width: 90px; height: 5px; background: rgba(255,255,255,.08); border-radius: 10px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.lb-bar { height: 100%; border-radius: 10px; transition: width .5s; }
+
+/* ════════════════════════════════════════
+   ALERTS PREVIEW
+════════════════════════════════════════ */
+#alerts-preview { background: var(--bg2); }
+.alerts-mockup { max-width: 700px; margin: 0 auto; }
+.email-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; margin-bottom: 16px;
+  transition: transform .2s;
+}
+.email-card:hover { transform: translateY(-3px); }
+.email-header {
+  padding: 14px 20px; background: rgba(255,77,109,.06);
+  border-bottom: 1px solid rgba(255,77,109,.15);
+  display: flex; align-items: center; gap: 10px;
+}
+.email-icon { font-size: 22px; }
+.email-to { font-size: 11px; color: var(--muted); }
+.email-subject { font-weight: 700; font-size: 14px; color: #ff8fab; }
+.email-body { padding: 18px 20px; }
+.email-line { font-size: 13px; color: var(--muted); margin-bottom: 8px; line-height: 1.7; }
+.email-highlight { color: var(--text); font-weight: 600; }
+.email-warning {
+  background: rgba(255,77,109,.07); border: 1px solid rgba(255,77,109,.2);
+  border-radius: 8px; padding: 10px 14px; margin-top: 12px;
+  font-size: 12px; color: #ff4d6d; font-weight: 600;
+}
+.alert-stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 16px; }
+.alert-stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; text-align: center;
+}
+.alert-stat-num { font-family: var(--font-display); font-weight: 800; font-size: 26px; color: #ff4d6d; }
+.alert-stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ════════════════════════════════════════
+   FACE SCANNER SECTION
+════════════════════════════════════════ */
+#face-scanner { background: var(--bg); }
+.scanner-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.scanner-info-list { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+.scanner-info-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px; border-radius: 12px; background: var(--surface);
+  border: 1px solid var(--border); transition: all .2s;
+}
+.scanner-info-item:hover { border-color: rgba(0,245,195,.25); transform: translateX(4px); }
+.scanner-info-ico { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+.scanner-info-title { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+.scanner-info-text { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.scanner-big-demo {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 22px; padding: 28px; position: relative;
+}
+.scanner-big-demo::before {
+  content: ''; position: absolute; inset: 0; border-radius: 22px;
+  background: radial-gradient(circle at 50% 0%, rgba(0,245,195,.05), transparent 55%);
+  pointer-events: none;
+}
+.scan-viewport {
+  background: #000; border-radius: 14px; aspect-ratio: 4/3;
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0,245,195,.15);
+}
+.scan-viewport-inner {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, #03080f, #0a1520);
+  display: flex; align-items: center; justify-content: center;
+}
+.scan-face-big { font-size: 100px; animation: float 3s ease-in-out infinite; }
+.scan-line-anim {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: scanLine 1.8s ease-in-out infinite;
+}
+.scan-corners > div { position: absolute; width: 28px; height: 28px; }
+.scan-corners > div:nth-child(1) { top: 14px; left: 14px; border-top: 3px solid var(--accent); border-left: 3px solid var(--accent); border-radius: 4px 0 0 0; }
+.scan-corners > div:nth-child(2) { top: 14px; right: 14px; border-top: 3px solid var(--accent); border-right: 3px solid var(--accent); border-radius: 0 4px 0 0; }
+.scan-corners > div:nth-child(3) { bottom: 14px; left: 14px; border-bottom: 3px solid var(--accent); border-left: 3px solid var(--accent); border-radius: 0 0 0 4px; }
+.scan-corners > div:nth-child(4) { bottom: 14px; right: 14px; border-bottom: 3px solid var(--accent); border-right: 3px solid var(--accent); border-radius: 0 0 4px 0; }
+.scan-checks { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; position: relative; }
+.scan-check {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+}
+.scan-check.ok  { background: rgba(0,245,195,.07); color: var(--accent); border: 1px solid rgba(0,245,195,.2); }
+.scan-check.bad { background: rgba(255,77,109,.07); color: #ff4d6d; border: 1px solid rgba(255,77,109,.2); }
+
+/* ════════════════════════════════════════
+   SUBJECTS TABLE PREVIEW
+════════════════════════════════════════ */
+#subjects-section { background: var(--bg2); }
+.subjects-preview-table { width: 100%; border-collapse: collapse; border-radius: 14px; overflow: hidden; }
+.subjects-preview-table th {
+  padding: 11px 16px; background: var(--surface);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--muted); text-align: left; border-bottom: 1px solid var(--border);
+}
+.subjects-preview-table td { padding: 12px 16px; font-size: 13px; border-top: 1px solid rgba(255,255,255,.04); }
+.subjects-preview-table tr:hover td { background: rgba(255,255,255,.02); }
+.type-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: 11px; font-weight: 700;
+}
+
+/* ════════════════════════════════════════
+   DARK / LIGHT TOGGLE DEMO
+════════════════════════════════════════ */
+#theme-demo { background: var(--bg); }
+.theme-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.theme-card-dark, .theme-card-light {
+  border-radius: 18px; padding: 24px; border: 1px solid var(--border);
+  transition: transform .2s;
+}
+.theme-card-dark:hover, .theme-card-light:hover { transform: translateY(-4px); }
+.theme-card-dark { background: #04070f; }
+.theme-card-light { background: #f0f9ff; border-color: #bfdbfe; }
+.theme-label { font-family: var(--font-display); font-weight: 800; font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.theme-bars { display: flex; flex-direction: column; gap: 8px; }
+.theme-bar { height: 10px; border-radius: 5px; }
+.theme-toggle-demo {
+  display: flex; align-items: center; gap: 10px; margin-top: 18px;
+  padding: 10px 14px; border-radius: 10px;
+}
+.theme-toggle-track {
+  width: 44px; height: 22px; border-radius: 11px;
+  position: relative; cursor: pointer;
+  transition: background .3s;
+}
+.theme-toggle-thumb {
+  position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%;
+  transition: left .3s; box-shadow: 0 1px 5px rgba(0,0,0,.3);
+}
+
+/* ════════════════════════════════════════
+   CTA
+════════════════════════════════════════ */
+#cta {
+  background: linear-gradient(135deg, rgba(0,245,195,.05), rgba(56,189,248,.03), rgba(167,139,250,.04));
+  border-top: 1px solid var(--border); text-align: center; padding: 100px 5%;
+}
+.cta-inner { max-width: 640px; margin: 0 auto; }
+.cta-title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(28px, 4.5vw, 50px); letter-spacing: -1.5px; margin-bottom: 16px;
+}
+.cta-sub { font-size: 16px; color: var(--muted); margin-bottom: 36px; line-height: 1.7; }
+.cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+footer {
+  background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 56px 5% 32px;
+}
+.footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.footer-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.footer-logo {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+.footer-brand-name { font-family: var(--font-display); font-weight: 800; font-size: 14px; color: var(--accent); }
+.footer-desc { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.footer-col-title { font-family: var(--font-display); font-weight: 700; font-size: 13px; margin-bottom: 14px; color: var(--text); }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-links a { font-size: 13px; color: var(--muted); transition: color .2s; }
+.footer-links a:hover { color: var(--accent); }
+.footer-bottom {
+  border-top: 1px solid var(--border); padding-top: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: var(--muted2); flex-wrap: wrap; gap: 10px;
+}
+.footer-badges { display: flex; gap: 8px; }
+.footer-badge {
+  background: rgba(255,255,255,.04); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--muted);
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .branches-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  section { padding: 64px 5%; }
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .mobile-menu {
+    position: fixed; top: 62px; left: 0; right: 0;
+    background: rgba(4,7,15,.98); border-bottom: 1px solid var(--border);
+    padding: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 899;
+  }
+  .mobile-menu a, .mobile-menu button {
+    padding: 12px 16px; border-radius: 8px; font-size: 14px;
+    color: var(--text); background: none; border: none; text-align: left;
+    font-family: var(--font-body);
+  }
+  .mobile-menu a:hover, .mobile-menu button:hover { background: var(--surface); }
+  .hero-stats { flex-wrap: wrap; }
+  .hero-stat { padding: 12px 20px; border-right: none; border-bottom: 1px solid var(--border); width: 50%; }
+  .hero-stat:nth-child(even) { border-right: none; }
+  .features-grid { grid-template-columns: 1fr; }
+  .branches-grid { grid-template-columns: 1fr 1fr; }
+  .how-grid { grid-template-columns: 1fr; }
+  .scanner-layout { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-box { border-right: none; border-bottom: 1px solid var(--border); }
+  .theme-cards { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+  .podium { gap: 6px; }
+  .podium-item { width: 110px; }
+}
+@media (max-width: 480px) {
+  .branches-grid { grid-template-columns: 1fr; }
+  .hero-title { letter-spacing: -1px; }
+  .orb-wrap { width: 200px; height: 200px; }
+  .orb-inner { width: 76px; height: 76px; font-size: 34px; }
+}
+
+/* ── BACK TO TOP ── */
+#back-top {
+  position: fixed; bottom: 28px; right: 28px; z-index: 800;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #000; border: none; font-size: 18px; display: none;
+  align-items: center; justify-content: center;
+  box-shadow: 0 6px 22px rgba(0,245,195,.35); transition: all .25s;
+  cursor: pointer;
+}
+#back-top.show { display: flex; }
+#back-top:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,245,195,.45); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     NAVBAR
+═══════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo">🎓</div>
+    <div>
+      <div class="nav-title">MIT VISHWAPRAYAG</div>
+      <div class="nav-sub">Smart Attendance System</div>
+    </div>
+  </div>
+
+  <div class="nav-links">
+    <a href="#features"  class="nav-link">Features</a>
+    <a href="#branches"  class="nav-link">Branches</a>
+    <a href="#how"       class="nav-link">How It Works</a>
+    <a href="#leaderboard" class="nav-link">Competition</a>
+    <a href="#face-scanner" class="nav-link">Face Scanner</a>
+    <a href="SmartAttend_COMPLETE.html" class="nav-cta" target="_blank">Launch App →</a>
+  </div>
+
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mobile-menu" id="mobile-menu" style="display:none;">
+  <a href="#features">Features</a>
+  <a href="#branches">Branches</a>
+  <a href="#how">How It Works</a>
+  <a href="#leaderboard">Competition</a>
+  <a href="#face-scanner">Face Scanner</a>
+  <a href="SmartAttend_COMPLETE.html" target="_blank" style="color:var(--accent);font-weight:700;">Launch App →</a>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HERO
+═══════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-bg-glow1"></div>
+  <div class="hero-bg-glow2"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      MIT Vishwaprayag University
+    </div>
+
+    <h1 class="hero-title">
+      <span class="gradient-text">Smart</span>
+      Attendance<br/>
+      <span style="background:linear-gradient(135deg,#e2e8f0,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">System</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      AI-powered attendance tracking with face liveness detection, automated parent alerts,
+      competition leaderboards and real-time analytics — built for all 8 branches at MIT Vishwaprayag.
+    </p>
+
+    <div class="hero-btns">
+      <a href="SmartAttend_COMPLETE.html" target="_blank" class="btn-primary">
+        🚀 Launch App
+      </a>
+      <a href="#features" class="btn-secondary">
+        Explore Features ↓
+      </a>
+    </div>
+
+    <!-- ORB ANIMATION -->
+    <div class="orb-wrap">
+      <div class="orb-ring1"></div>
+      <div class="orb-ring2"></div>
+      <div class="orb-core">
+        <div class="orb-inner">🎓</div>
+      </div>
+      <div class="orb-dot" style="animation:orbit 5s linear infinite;">
+        <span style="color:#00f5c3;background:#00f5c3;"></span>
+      </div>
+      <div class="orb-dot" style="animation:orbit2 4s linear infinite;">
+        <span style="color:#38bdf8;background:#38bdf8;"></span>
+      </div>
+      <div class="orb-dot" style="animation:orbit3 6s linear infinite;">
+        <span style="color:#a78bfa;background:#a78bfa;"></span>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val">8</div>
+        <div class="hero-stat-label">Branches</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">64</div>
+        <div class="hero-stat-label">Subjects</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">41</div>
+        <div class="hero-stat-label">Students</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">AI</div>
+        <div class="hero-stat-label">Powered</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     MARQUEE STRIP
+═══════════════════════════════════════ -->
+<div class="marquee-strip">
+  <div class="marquee-inner" id="marquee">
+    <span class="marquee-item"><span class="marquee-dot"></span>Face Liveness Detection</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Anti-Spoof AI</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Gmail Parent Alerts</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Competition Leaderboard</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>8 Branches</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Dark & Light Mode</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Batch 1 & Batch 2</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Real-time Analytics</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Claude AI Vision</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>15-Day Rankings</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Face Liveness Detection</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Anti-Spoof AI</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Gmail Parent Alerts</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Competition Leaderboard</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>8 Branches</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Dark & Light Mode</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Batch 1 & Batch 2</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Real-time Analytics</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Claude AI Vision</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>15-Day Rankings</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FEATURES
+═══════════════════════════════════════ -->
+<section id="features">
+  <div class="section-head hidden">
+    <div class="section-tag">Features</div>
+    <h2 class="section-title">Everything You Need to<br/><span class="gradient-text">Manage Attendance</span></h2>
+    <p class="section-sub">A complete intelligent system built for MIT Vishwaprayag professors and administrators.</p>
+  </div>
+
+  <div class="features-grid">
+
+    <div class="feature-card hidden" style="--glow-c:rgba(0,245,195,.07);--line-c1:#00f5c3;--line-c2:#38bdf8;">
+      <div class="feature-icon" style="--ico-bg:rgba(0,245,195,.1);--ico-brd:rgba(0,245,195,.25);">🔬</div>
+      <div class="feature-title">Face Liveness Scanner</div>
+      <div class="feature-desc">Claude Vision AI captures 3 frames and detects whether the student is physically present or trying to use a printed photo, phone screen, or paper to fake attendance.</div>
+      <span class="feature-tag" style="--tag-bg:rgba(0,245,195,.08);--tag-c:#00f5c3;--tag-brd:rgba(0,245,195,.2);">Claude Vision AI</span>
+    </div>
+
+    <div class="feature-card hidden" style="--glow-c:rgba(255,77,109,.06);--line-c1:#ff4d6d;--line-c2:#ff8fab;">
+      <div class="feature-icon" style="--ico-bg:rgba(255,77,109,.1);--ico-brd:rgba(255,77,109,.25);">⛔</div>
+      <div class="feature-title">Anti-Spoof Detection</div>
+      <div class="feature-desc">Detects printed photos, phone/screen display, paper ID cards, magazine photos and any 2D image of a face. Instantly blocks fraud and logs the attempt.</div>
+      <span class="feature-tag" style="--tag-bg:rgba(255,77,109,.08);--tag-c:#ff4d6d;--tag-brd:rgba(255,77,109,.2);">Zero Tolerance</span>
+    </div>
+
+    <div class="feature-card hidden" style="--glow-c:rgba(56,189,248,.06);--line-c1:#38bdf8;--line-c2:#a78bfa;">
+      <div class="feature-icon" style="--ico-bg:rgba(56,189,248,.1);--ico-brd:rgba(56,189,248,.25);">📧</div>
+      <div class="feature-title">Automated Parent Alerts</div>
+      <div class="feature-desc">When a student's attendance drops below 75%, a detailed email is automatically sent to their parent via Gmail with subject-wise breakdown and contact info.</div>
+      <span class="feature-tag" style="--tag-bg:rgba(56,189,248,.08);--tag-c:#38bdf8;--tag-brd:rgba(56,189,248,.2);">Gmail MCP</span>
+    </div>
+
+    <div class="feature-card hidden" style="--glow-c:rgba(245,158,11,.06);--line-c1:#f59e0b;--line-c2:#fcd34d;">
+      <div class="feature-icon" style="--ico-bg:rgba(245,158,11,.1);--ico-brd:rgba(245,158,11,.25);">🏆</div>
+      <div class="feature-title">Competition Leaderboard</div>
+      <div class="feature-desc">Students are ranked by last 15 school days attendance. Gold, silver and bronze podium with animated per-student calendar strip. Filter by branch and batch.</div>
+      <span class="feature-tag" style="--tag-bg:rgba(245,158,11,.08);--tag-c:#f59e0b;--tag-brd:rgba(245,158,11,.2);">Gamified</span>
+    </div>
+
+    <div class="feature-card hidden" style="--glow-c:rgba(167,139,250,.06);--line-c1:#a78bfa;--line-c2:#c084fc;">
+      <div class="feature-icon" style="--ico-bg:rgba(167,139,250,.1);--ico-brd:rgba(167,139,250,.25);">🌙</div>
+      <div class="feature-title">Dark & Light Mode</div>
+      <div class="feature-desc">Toggle between a deep dark theme and a clean bright light theme with one click. Preference is saved automatically for the next session.</div>
+      <span class="feature-tag" style="--tag-bg:rgba(167,139,250,.08);--tag-c:#a78bfa;--tag-brd:rgba(167,139,250,.2);">Auto-saved</span>
+    </div>
+
+    <div class="feature-card hidden" style="--glow-c:rgba(52,211,153,.06);--line-c1:#34d399;--line-c2:#6ee7b7;">
+      <div class="feature-icon" style="--ico-bg:rgba(52,211,153,.1);--ico-brd:rgba(52,211,153,.25);">📊</div>
+      <div class="feature-title">AI Analytics Insights</div>
+      <div class="feature-desc">Click once to generate 3 AI-powered bullet point insights from all your attendance data — identifies trends, at-risk students, and top performers instantly.</div>
+      <span class="feature-tag" style="--tag-bg:rgba(52,211,153,.08);--tag-c:#34d399;--tag-brd:rgba(52,211,153,.2);">Claude AI</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     BRANCHES
+═══════════════════════════════════════ -->
+<section id="branches">
+  <div class="section-head hidden">
+    <div class="section-tag">Branches</div>
+    <h2 class="section-title">All 8 Departments<br/><span class="gradient-text">Covered</span></h2>
+    <p class="section-sub">Every branch at MIT Vishwaprayag has its own subjects, students, and attendance tracking.</p>
+  </div>
+
+  <div class="branches-grid">
+
+    <div class="branch-card hidden" style="--b-c:#00f5c3;">
+      <div class="branch-icon">💻</div>
+      <div class="branch-name">CSE</div>
+      <div class="branch-full">Computer Science & Engineering</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>23 Credits</span>
+        <span>6 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#a78bfa;">
+      <div class="branch-icon">🤖</div>
+      <div class="branch-name">CSE (AI&ML)</div>
+      <div class="branch-full">CSE — Artificial Intelligence & Machine Learning</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>27 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#38bdf8;">
+      <div class="branch-icon">🌐</div>
+      <div class="branch-name">IT</div>
+      <div class="branch-full">Information Technology</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>25 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#f59e0b;">
+      <div class="branch-icon">🖥️</div>
+      <div class="branch-name">BCA</div>
+      <div class="branch-full">Bachelor of Computer Applications</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>28 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#ec4899;">
+      <div class="branch-icon">🔧</div>
+      <div class="branch-name">MCA</div>
+      <div class="branch-full">Master of Computer Applications</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>28 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#ff4d6d;">
+      <div class="branch-icon">📈</div>
+      <div class="branch-name">MBA</div>
+      <div class="branch-full">Master of Business Administration</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>25 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#fb923c;">
+      <div class="branch-icon">💼</div>
+      <div class="branch-name">BBA</div>
+      <div class="branch-full">Bachelor of Business Administration</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>23 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+    <div class="branch-card hidden" style="--b-c:#34d399;">
+      <div class="branch-icon">💊</div>
+      <div class="branch-name">Pharma</div>
+      <div class="branch-full">Bachelor of Pharmacy</div>
+      <div class="branch-meta">
+        <span>8 Subjects</span>
+        <span>27 Credits</span>
+        <span>5 Students</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     STATS
+═══════════════════════════════════════ -->
+<div id="stats">
+  <div class="stats-grid">
+    <div class="stat-box hidden">
+      <div class="stat-num gradient-text" data-target="41">0</div>
+      <div class="stat-lbl">Total Students</div>
+    </div>
+    <div class="stat-box hidden">
+      <div class="stat-num gradient-text" data-target="64">0</div>
+      <div class="stat-lbl">Total Subjects</div>
+    </div>
+    <div class="stat-box hidden">
+      <div class="stat-num" style="color:#a78bfa;" data-target="8">0</div>
+      <div class="stat-lbl">Branches</div>
+    </div>
+    <div class="stat-box hidden">
+      <div class="stat-num" style="color:#f59e0b;" data-target="75">0<span class="stat-unit">%</span></div>
+      <div class="stat-lbl">Minimum Attendance</div>
+    </div>
+    <div class="stat-box hidden">
+      <div class="stat-num" style="color:#ff4d6d;" data-target="3">0</div>
+      <div class="stat-lbl">AI Checks per Scan</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HOW IT WORKS
+═══════════════════════════════════════ -->
+<section id="how">
+  <div class="section-head hidden">
+    <div class="section-tag">How It Works</div>
+    <h2 class="section-title">Simple for Professors,<br/><span class="gradient-text">Powerful for Students</span></h2>
+    <p class="section-sub">Mark attendance in three ways — manual, face scan, or all-present shortcut.</p>
+  </div>
+
+  <div class="how-grid">
+    <div class="how-steps">
+      <div class="how-step hidden">
+        <div class="how-step-num">1</div>
+        <div>
+          <div class="how-step-title">Select Branch & Subject</div>
+          <div class="how-step-desc">Choose any of the 8 branches and their subjects — CSE, AI&ML, IT, BCA, MCA, MBA, BBA or Pharma. Subjects are grouped by branch for easy navigation.</div>
+        </div>
+      </div>
+      <div class="how-step hidden">
+        <div class="how-step-num">2</div>
+        <div>
+          <div class="how-step-title">Mark Present or Absent</div>
+          <div class="how-step-desc">Click Present / Absent per student card, or use "All Present" shortcut. Each card shows overall attendance and batch assignment.</div>
+        </div>
+      </div>
+      <div class="how-step hidden">
+        <div class="how-step-num">3</div>
+        <div>
+          <div class="how-step-title">Run Face Liveness Scan</div>
+          <div class="how-step-desc">Click the 🔬 button on any student card. Camera opens, Claude Vision captures 3 frames and verifies the student is physically present.</div>
+        </div>
+      </div>
+      <div class="how-step hidden">
+        <div class="how-step-num">4</div>
+        <div>
+          <div class="how-step-title">Auto-Alert Parents</div>
+          <div class="how-step-desc">If attendance falls below 75%, a parent alert is queued automatically. Go to the Alerts page and send with one click via Gmail.</div>
+        </div>
+      </div>
+      <div class="how-step hidden">
+        <div class="how-step-num">5</div>
+        <div>
+          <div class="how-step-title">Check Competition Rankings</div>
+          <div class="how-step-desc">Students are ranked by last 15 school days — overall and by class. Gold, silver, bronze podium motivates students to maintain attendance.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="how-visual hidden">
+      <div class="scanner-demo">
+        <div class="scanner-face-bg">
+          <div class="scanner-face">🧑</div>
+        </div>
+        <div class="scanner-scan-line"></div>
+        <div class="scanner-corners">
+          <div></div><div></div><div></div><div></div>
+        </div>
+      </div>
+      <div class="scanner-status">
+        <span class="dot"></span>
+        AI Liveness Scan Active — Analyzing frame 2 of 3…
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     LEADERBOARD PREVIEW
+═══════════════════════════════════════ -->
+<section id="leaderboard">
+  <div class="section-head hidden">
+    <div class="section-tag">Competition</div>
+    <h2 class="section-title">15-Day Attendance<br/><span class="gradient-text-warm">Leaderboard</span></h2>
+    <p class="section-sub">Students compete for the top rank based on how many of the last 15 school days they were present. Ranked within class and overall.</p>
+  </div>
+
+  <div class="leaderboard-wrap hidden">
+    <!-- PODIUM -->
+    <div class="podium">
+
+      <div class="podium-item" style="--pod-c:#c0c0c0;">
+        <div style="font-size:22px;margin-bottom:6px;">🥈</div>
+        <div class="podium-avatar">PJ</div>
+        <div class="podium-name">Pooja Joshi</div>
+        <div class="podium-roll">AI004 · CSE AI&ML</div>
+        <div class="podium-pct">93%</div>
+        <div class="podium-days">14 / 15 days</div>
+        <div class="podium-base" style="height:110px;"><div class="podium-rank">#2</div></div>
+      </div>
+
+      <div class="podium-item" style="--pod-c:#ffd700;">
+        <div style="font-size:26px;margin-bottom:4px;animation:float 2s ease-in-out infinite;">👑</div>
+        <div class="podium-avatar" style="width:66px;height:66px;font-size:22px;">AI</div>
+        <div class="podium-name">Ananya Iyer</div>
+        <div class="podium-roll">CS006 · CSE</div>
+        <div class="podium-pct" style="font-size:28px;">100%</div>
+        <div class="podium-days">15 / 15 days</div>
+        <div class="podium-base" style="height:148px;"><div class="podium-rank">#1</div></div>
+      </div>
+
+      <div class="podium-item" style="--pod-c:#cd7f32;">
+        <div style="font-size:22px;margin-bottom:6px;">🥉</div>
+        <div class="podium-avatar">TM</div>
+        <div class="podium-name">Tanvi Malhotra</div>
+        <div class="podium-roll">MC001 · MCA</div>
+        <div class="podium-pct">87%</div>
+        <div class="podium-days">13 / 15 days</div>
+        <div class="podium-base" style="height:82px;"><div class="podium-rank">#3</div></div>
+      </div>
+
+    </div>
+
+    <!-- FULL TABLE PREVIEW -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>Rank</th><th>Student</th><th>Branch</th><th>15-Day %</th><th>Score</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="lb-tbody">
+          <!-- filled by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div style="text-align:center;margin-top:20px;">
+      <a href="SmartAttend_COMPLETE.html" target="_blank" class="btn-primary" style="display:inline-flex;">
+        View Full Leaderboard in App →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PARENT ALERTS
+═══════════════════════════════════════ -->
+<section id="alerts-preview">
+  <div class="section-head hidden">
+    <div class="section-tag">Parent Alerts</div>
+    <h2 class="section-title">Automatic Email Alerts<br/><span class="gradient-text">Below 75%</span></h2>
+    <p class="section-sub">When attendance drops, parents receive a detailed email automatically via Gmail — no manual work needed.</p>
+  </div>
+
+  <div class="alerts-mockup hidden">
+    <div class="email-card">
+      <div class="email-header">
+        <div class="email-icon">📧</div>
+        <div>
+          <div class="email-to">To: parent.rahul@gmail.com</div>
+          <div class="email-subject">⚠️ URGENT: Low Attendance Alert — Rahul Verma (CS003)</div>
+        </div>
+      </div>
+      <div class="email-body">
+        <div class="email-line">Dear <span class="email-highlight">Parent/Guardian</span>,</div>
+        <div class="email-line">This is an automated alert from <span class="email-highlight">MIT Vishwaprayag Smart Attendance System</span>.</div>
+        <div class="email-line">
+          Student: <span class="email-highlight">Rahul Verma</span> &nbsp;|&nbsp;
+          Roll: <span class="email-highlight">CS003</span> &nbsp;|&nbsp;
+          Class: <span class="email-highlight">CSE-B</span> &nbsp;|&nbsp;
+          Batch 2
+        </div>
+        <div class="email-line">Overall Attendance: <span style="color:#ff4d6d;font-weight:700;">52%</span> &nbsp;⚠️&nbsp; <span class="email-highlight">(Required: 75%)</span></div>
+
+        <div style="margin-top:14px;background:var(--surface2);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Subject-wise Attendance</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
+              <span style="flex:1;color:var(--muted);">AS1002 — Calculus</span>
+              <div class="lb-bar-wrap" style="width:60px;"><div class="lb-bar" style="width:50%;background:#ff4d6d;"></div></div>
+              <span style="color:#ff4d6d;font-weight:700;width:32px;">50%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
+              <span style="flex:1;color:var(--muted);">AS1003 — Discrete Math</span>
+              <div class="lb-bar-wrap" style="width:60px;"><div class="lb-bar" style="width:54%;background:#ff4d6d;"></div></div>
+              <span style="color:#ff4d6d;font-weight:700;width:32px;">54%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
+              <span style="flex:1;color:var(--muted);">SC1141 — Data Structures</span>
+              <div class="lb-bar-wrap" style="width:60px;"><div class="lb-bar" style="width:48%;background:#ff4d6d;"></div></div>
+              <span style="color:#ff4d6d;font-weight:700;width:32px;">48%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="email-warning">⚠️ Please contact MIT Vishwaprayag immediately. Minimum 75% attendance is mandatory.</div>
+      </div>
+    </div>
+
+    <div class="alert-stat-row">
+      <div class="alert-stat">
+        <div class="alert-stat-num">75%</div>
+        <div class="alert-stat-label">Minimum Threshold</div>
+      </div>
+      <div class="alert-stat">
+        <div class="alert-stat-num" style="color:#f5a623;">Auto</div>
+        <div class="alert-stat-label">Alert Triggered</div>
+      </div>
+      <div class="alert-stat">
+        <div class="alert-stat-num" style="color:#00f5c3;">Gmail</div>
+        <div class="alert-stat-label">Delivery Method</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FACE SCANNER DEEP DIVE
+═══════════════════════════════════════ -->
+<section id="face-scanner">
+  <div class="scanner-layout">
+    <div class="hidden">
+      <div class="section-tag">Face Scanner</div>
+      <h2 class="section-title">Zero Proxy<br/><span class="gradient-text">Attendance</span></h2>
+      <p class="section-sub" style="margin-bottom:0;">Claude Vision AI analyzes 3 separate frames and uses majority voting to confirm liveness — impossible to fool with any static image.</p>
+
+      <div class="scanner-info-list">
+        <div class="scanner-info-item">
+          <div class="scanner-info-ico">📸</div>
+          <div>
+            <div class="scanner-info-title">3-Frame Capture</div>
+            <div class="scanner-info-text">Camera takes 3 separate frames over 3 seconds for accurate multi-sample analysis.</div>
+          </div>
+        </div>
+        <div class="scanner-info-item">
+          <div class="scanner-info-ico">🧠</div>
+          <div>
+            <div class="scanner-info-title">Claude Vision Analysis</div>
+            <div class="scanner-info-text">Each frame is sent to Claude Vision API. AI checks for depth, shadows, reflections, edges and texture.</div>
+          </div>
+        </div>
+        <div class="scanner-info-item">
+          <div class="scanner-info-ico">🗳️</div>
+          <div>
+            <div class="scanner-info-title">Majority Vote Verdict</div>
+            <div class="scanner-info-text">2 out of 3 checks must confirm liveness. Prevents single-frame false positives.</div>
+          </div>
+        </div>
+        <div class="scanner-info-item">
+          <div class="scanner-info-ico">🚫</div>
+          <div>
+            <div class="scanner-info-title">Instant Spoof Block</div>
+            <div class="scanner-info-text">If any single check detects a spoof with >62% confidence, the scan is immediately rejected and logged.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scanner-big-demo hidden">
+      <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--accent);margin-bottom:16px;">🔬 Live Scan Demo Preview</div>
+      <div class="scan-viewport">
+        <div class="scan-viewport-inner">
+          <div class="scan-face-big">🧑‍💻</div>
+        </div>
+        <div class="scan-line-anim"></div>
+        <div class="scan-corners"><div></div><div></div><div></div><div></div></div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px;">
+          <span>🧠 AI analyzing frame 3 of 3…</span><span>95%</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,.08);border-radius:10px;overflow:hidden;">
+          <div style="width:95%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:10px;"></div>
+        </div>
+      </div>
+
+      <div class="scan-checks" style="margin-top:16px;">
+        <div class="scan-check ok">✅ Check 1: Live face detected — 94% confidence</div>
+        <div class="scan-check ok">✅ Check 2: Live face detected — 91% confidence</div>
+        <div class="scan-check ok">✅ Check 3: Live face detected — 97% confidence</div>
+      </div>
+
+      <div style="margin-top:14px;background:rgba(0,245,195,.07);border:1px solid rgba(0,245,195,.25);border-radius:10px;padding:13px 16px;color:var(--accent);font-weight:700;font-size:14px;">
+        ✅ VERIFIED — Attendance marked Present
+      </div>
+
+      <div style="margin-top:14px;padding:12px;background:rgba(255,77,109,.06);border:1px solid rgba(255,77,109,.2);border-radius:10px;font-size:12px;color:#ff4d6d;line-height:1.7;">
+        ⛔ <strong>Detects & Blocks:</strong> Printed photos · Phone/screen display · Paper ID cards · Magazine photos · Drawings · Masks
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SUBJECTS PREVIEW
+═══════════════════════════════════════ -->
+<section id="subjects-section">
+  <div class="section-head hidden">
+    <div class="section-tag">Courses</div>
+    <h2 class="section-title">Real Subjects from<br/><span class="gradient-text">Your Course Table</span></h2>
+    <p class="section-sub">All 8 CSE subjects from your official semester table — exactly as provided, with L/T/P/Credits columns.</p>
+  </div>
+
+  <div style="max-width:900px;margin:0 auto;" class="hidden">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <span style="background:rgba(0,245,195,.1);color:var(--accent);border:1px solid rgba(0,245,195,.25);border-radius:8px;padding:4px 12px;font-size:12px;font-weight:800;">CSE</span>
+        <span style="font-family:var(--font-display);font-weight:700;font-size:14px;">Computer Science & Engineering — Semester Subjects</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--muted);">23 total credits</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="subjects-preview-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Code</th><th>Type</th><th>Course Title</th><th>L</th><th>T</th><th>P</th><th>Credits</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="color:var(--muted);">1</td><td><span style="font-family:monospace;background:rgba(0,245,195,.1);color:var(--accent);padding:2px 8px;border-radius:20px;font-size:11px;">AS1002</span></td><td><span class="type-badge" style="background:rgba(0,245,195,.12);color:#00f5c3;">BS</span></td><td>Calculus</td><td style="color:#38bdf8;font-weight:700;">3</td><td style="color:#a78bfa;font-weight:700;">1</td><td style="color:#f59e0b;font-weight:700;">0</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">4</td></tr>
+            <tr><td style="color:var(--muted);">2</td><td><span style="font-family:monospace;background:rgba(0,245,195,.1);color:var(--accent);padding:2px 8px;border-radius:20px;font-size:11px;">AS1201</span></td><td><span class="type-badge" style="background:rgba(0,245,195,.12);color:#00f5c3;">BS</span></td><td>Applied Chemistry for Engineers</td><td style="color:#38bdf8;font-weight:700;">3</td><td style="color:#a78bfa;font-weight:700;">0</td><td style="color:#f59e0b;font-weight:700;">0</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">3</td></tr>
+            <tr><td style="color:var(--muted);">3</td><td><span style="font-family:monospace;background:rgba(167,139,250,.1);color:#a78bfa;padding:2px 8px;border-radius:20px;font-size:11px;">AS1003</span></td><td><span class="type-badge" style="background:rgba(167,139,250,.12);color:#a78bfa;">PC</span></td><td>Discrete Mathematics</td><td style="color:#38bdf8;font-weight:700;">3</td><td style="color:#a78bfa;font-weight:700;">1</td><td style="color:#f59e0b;font-weight:700;">0</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">4</td></tr>
+            <tr><td style="color:var(--muted);">4</td><td><span style="font-family:monospace;background:rgba(245,158,11,.1);color:#f59e0b;padding:2px 8px;border-radius:20px;font-size:11px;">SE1008</span></td><td><span class="type-badge" style="background:rgba(245,158,11,.12);color:#f59e0b;">ES</span></td><td>Digital Logic Design</td><td style="color:#38bdf8;font-weight:700;">3</td><td style="color:#a78bfa;font-weight:700;">0</td><td style="color:#f59e0b;font-weight:700;">0</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">3</td></tr>
+            <tr><td style="color:var(--muted);">5</td><td><span style="font-family:monospace;background:rgba(245,158,11,.1);color:#f59e0b;padding:2px 8px;border-radius:20px;font-size:11px;">SC1141</span></td><td><span class="type-badge" style="background:rgba(245,158,11,.12);color:#f59e0b;">ES</span></td><td>Data Structures using C</td><td style="color:#38bdf8;font-weight:700;">3</td><td style="color:#a78bfa;font-weight:700;">0</td><td style="color:#f59e0b;font-weight:700;">0</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">3</td></tr>
+            <tr><td style="color:var(--muted);">6</td><td><span style="font-family:monospace;background:rgba(245,158,11,.1);color:#f59e0b;padding:2px 8px;border-radius:20px;font-size:11px;">SE1009</span></td><td><span class="type-badge" style="background:rgba(245,158,11,.12);color:#f59e0b;">ES</span></td><td>Digital Logic Design Lab</td><td style="color:#38bdf8;font-weight:700;">0</td><td style="color:#a78bfa;font-weight:700;">0</td><td style="color:#f59e0b;font-weight:700;">1</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">1</td></tr>
+            <tr><td style="color:var(--muted);">7</td><td><span style="font-family:monospace;background:rgba(245,158,11,.1);color:#f59e0b;padding:2px 8px;border-radius:20px;font-size:11px;">SC1142</span></td><td><span class="type-badge" style="background:rgba(245,158,11,.12);color:#f59e0b;">ES</span></td><td>Data Structures using C Lab</td><td style="color:#38bdf8;font-weight:700;">0</td><td style="color:#a78bfa;font-weight:700;">0</td><td style="color:#f59e0b;font-weight:700;">2</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">2</td></tr>
+            <tr><td style="color:var(--muted);">8</td><td><span style="font-family:monospace;background:rgba(56,189,248,.1);color:#38bdf8;padding:2px 8px;border-radius:20px;font-size:11px;">UC1201</span></td><td><span class="type-badge" style="background:rgba(56,189,248,.12);color:#38bdf8;">UC</span></td><td>AI for All</td><td style="color:#38bdf8;font-weight:700;">0</td><td style="color:#a78bfa;font-weight:700;">1</td><td style="color:#f59e0b;font-weight:700;">2</td><td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:16px;">3</td></tr>
+            <tr style="background:rgba(0,245,195,.03);border-top:2px solid rgba(0,245,195,.2)!important;">
+              <td colspan="4" style="font-weight:800;font-size:13px;padding:11px 14px;">Total</td>
+              <td style="color:#38bdf8;font-weight:800;">15</td>
+              <td style="color:#a78bfa;font-weight:800;">3</td>
+              <td style="color:#f59e0b;font-weight:800;">5</td>
+              <td style="color:var(--accent);font-family:var(--font-display);font-weight:800;font-size:18px;">23</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--muted);">Same table structure available for all 8 branches in the app.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     THEME DEMO
+═══════════════════════════════════════ -->
+<section id="theme-demo">
+  <div class="section-head hidden">
+    <div class="section-tag">Appearance</div>
+    <h2 class="section-title">Dark Mode &<br/><span class="gradient-text">Light Mode</span></h2>
+    <p class="section-sub">Switch between themes with one click. Preference is automatically saved for your next session.</p>
+  </div>
+
+  <div class="theme-cards hidden">
+    <div class="theme-card-dark">
+      <div class="theme-label" style="color:#00f5c3;">🌙 Dark Mode</div>
+      <div style="background:#080d18;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,245,195,.15);border:2px solid rgba(0,245,195,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#00f5c3;">AS</div>
+          <div><div style="font-weight:600;font-size:13px;color:#e2e8f0;">Arjun Sharma</div><div style="font-size:11px;color:#475569;">CS001 · CSE-A</div></div>
+          <span style="margin-left:auto;background:rgba(0,245,195,.12);color:#00f5c3;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">Good</span>
+        </div>
+        <div class="theme-bars">
+          <div class="theme-bar" style="background:linear-gradient(90deg,#00f5c3,rgba(0,245,195,.3));width:85%;"></div>
+          <div class="theme-bar" style="background:linear-gradient(90deg,#38bdf8,rgba(56,189,248,.3));width:70%;"></div>
+          <div class="theme-bar" style="background:linear-gradient(90deg,#ff4d6d,rgba(255,77,109,.3));width:52%;"></div>
+        </div>
+      </div>
+      <div class="theme-toggle-demo" style="background:rgba(0,245,195,.07);border:1px solid rgba(0,245,195,.2);">
+        <div class="theme-toggle-track" style="background:rgba(0,245,195,.18);border:1px solid rgba(0,245,195,.4);">
+          <div class="theme-toggle-thumb" style="left:22px;background:#00f5c3;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:#00f5c3;">Dark Mode ON</span>
+      </div>
+    </div>
+
+    <div class="theme-card-light">
+      <div class="theme-label" style="color:#0891b2;">☀️ Light Mode</div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(8,145,178,.12);border:2px solid rgba(8,145,178,.35);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#0891b2;">PM</div>
+          <div><div style="font-weight:600;font-size:13px;color:#0f172a;">Priya Mehta</div><div style="font-size:11px;color:#94a3b8;">CS002 · CSE-A</div></div>
+          <span style="margin-left:auto;background:rgba(8,145,178,.1);color:#0891b2;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">Good</span>
+        </div>
+        <div class="theme-bars">
+          <div class="theme-bar" style="background:linear-gradient(90deg,#0891b2,rgba(8,145,178,.3));width:90%;"></div>
+          <div class="theme-bar" style="background:linear-gradient(90deg,#0ea5e9,rgba(14,165,233,.3));width:75%;"></div>
+          <div class="theme-bar" style="background:linear-gradient(90deg,#e11d48,rgba(225,29,72,.3));width:60%;"></div>
+        </div>
+      </div>
+      <div class="theme-toggle-demo" style="background:rgba(8,145,178,.07);border:1px solid rgba(8,145,178,.2);">
+        <div class="theme-toggle-track" style="background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.35);">
+          <div class="theme-toggle-thumb" style="left:2px;background:#0891b2;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:#0891b2;">Light Mode ON</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     CTA
+═══════════════════════════════════════ -->
+<section id="cta">
+  <div class="cta-inner hidden">
+    <div class="section-tag" style="margin-bottom:20px;">Get Started</div>
+    <h2 class="cta-title">
+      Ready to Transform<br/>
+      <span class="gradient-text">Attendance at MIT Vishwaprayag?</span>
+    </h2>
+    <p class="cta-sub">
+      One HTML file. No installation. Works on any browser, phone or tablet.
+      Open it and your smart attendance system is live instantly.
+    </p>
+    <div class="cta-btns">
+      <a href="SmartAttend_COMPLETE.html" target="_blank" class="btn-primary">
+        🚀 Launch the App
+      </a>
+      <a href="#features" class="btn-secondary">
+        ↑ Back to Features
+      </a>
+    </div>
+    <div style="margin-top:36px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--muted);">
+      <span>✅ No installation required</span>
+      <span>✅ Works offline after first load</span>
+      <span>✅ Data saved in browser</span>
+      <span>✅ Free to use</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">
+        <div class="footer-logo">🎓</div>
+        <div>
+          <div class="footer-brand-name">MIT VISHWAPRAYAG</div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;">Smart Attendance System</div>
+        </div>
+      </div>
+      <p class="footer-desc">AI-powered attendance tracking for all 8 departments. Face liveness detection, parent alerts, competition leaderboards — built by students, for students.</p>
+    </div>
+
+    <div>
+      <div class="footer-col-title">System</div>
+      <ul class="footer-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#face-scanner">Face Scanner</a></li>
+        <li><a href="#leaderboard">Leaderboard</a></li>
+        <li><a href="#alerts-preview">Parent Alerts</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Branches</div>
+      <ul class="footer-links">
+        <li><a href="#branches">CSE</a></li>
+        <li><a href="#branches">CSE (AI &amp; ML)</a></li>
+        <li><a href="#branches">IT · BCA</a></li>
+        <li><a href="#branches">MCA · MBA</a></li>
+        <li><a href="#branches">BBA · Pharma</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Technology</div>
+      <ul class="footer-links">
+        <li><a href="#">Claude AI Vision</a></li>
+        <li><a href="#">Gmail MCP</a></li>
+        <li><a href="#">React 18</a></li>
+        <li><a href="#">LocalStorage</a></li>
+        <li><a href="#">GitHub Pages</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span>© 2025 MIT Vishwaprayag University · Smart Attendance System</span>
+    <div class="footer-badges">
+      <span class="footer-badge">Claude AI</span>
+      <span class="footer-badge">React 18</span>
+      <span class="footer-badge">GitHub Pages</span>
+    </div>
+  </div>
+</footer>
+
+<!-- BACK TO TOP -->
+<button id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- ═══════════════════════════════════════
+     ALL JAVASCRIPT
+═══════════════════════════════════════ -->
+<script>
+/* ── SUPPRESS CONSOLE ── */
+(function(){var n=function(){};['log','warn','error','info','debug','trace','group','groupEnd','table','dir','count','time','timeEnd','clear'].forEach(function(m){try{console[m]=n;}catch(e){}});window.addEventListener('error',function(e){e.stopImmediatePropagation();e.preventDefault();},true);window.addEventListener('unhandledrejection',function(e){e.stopImmediatePropagation();e.preventDefault();},true);})();
+
+/* ── NAVBAR SCROLL ── */
+window.addEventListener('scroll', function() {
+  var nav = document.getElementById('navbar');
+  var backTop = document.getElementById('back-top');
+  if (window.scrollY > 60) {
+    nav.classList.add('scrolled');
+    backTop.classList.add('show');
+  } else {
+    nav.classList.remove('scrolled');
+    backTop.classList.remove('show');
+  }
+});
+
+/* ── HAMBURGER MENU ── */
+document.getElementById('hamburger').addEventListener('click', function() {
+  var menu = document.getElementById('mobile-menu');
+  var isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'flex';
+  menu.style.flexDirection = 'column';
+});
+document.querySelectorAll('#mobile-menu a').forEach(function(a) {
+  a.addEventListener('click', function() {
+    document.getElementById('mobile-menu').style.display = 'none';
+  });
+});
+
+/* ── INTERSECTION OBSERVER — scroll reveal ── */
+var io = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.hidden').forEach(function(el) {
+  io.observe(el);
+});
+
+/* ── SMOOTH SCROLL ── */
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+/* ── STAT COUNTER ANIMATION ── */
+function animateCount(el) {
+  var target = parseInt(el.dataset.target);
+  var unit = el.querySelector('.stat-unit') ? el.querySelector('.stat-unit').outerHTML : '';
+  var suffix = el.dataset.suffix || '';
+  var duration = 1400;
+  var start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    var progress = Math.min((ts - start) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    var current = Math.floor(eased * target);
+    el.innerHTML = current + suffix + unit;
+    if (progress < 1) requestAnimationFrame(step);
+    else el.innerHTML = target + suffix + unit;
+  }
+  requestAnimationFrame(step);
+}
+
+var statObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      var nums = entry.target.querySelectorAll('[data-target]');
+      nums.forEach(animateCount);
+      statObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+var statsSection = document.getElementById('stats');
+if (statsSection) statObserver.observe(statsSection);
+
+/* ── LEADERBOARD TABLE ── */
+var lbData = [
+  { rank:1, medal:'🥇', name:'Ananya Iyer',     roll:'CS006', branch:'CSE',     batch:'Batch 1', pct:100, score:250, status:'ok' },
+  { rank:2, medal:'🥈', name:'Pooja Joshi',     roll:'AI004', branch:'AI&ML',   batch:'Batch 2', pct:93,  score:239, status:'ok' },
+  { rank:3, medal:'🥉', name:'Tanvi Malhotra',  roll:'MC001', branch:'MCA',     batch:'Batch 1', pct:87,  score:217, status:'ok' },
+  { rank:4, medal:'4',  name:'Arjun Sharma',    roll:'CS001', branch:'CSE',     batch:'Batch 1', pct:85,  score:210, status:'ok' },
+  { rank:5, medal:'5',  name:'Meera Krishnan',  roll:'IT001', branch:'IT',      batch:'Batch 1', pct:84,  score:209, status:'ok' },
+  { rank:6, medal:'6',  name:'Priya Mehta',     roll:'CS002', branch:'CSE',     batch:'Batch 1', pct:82,  score:197, status:'ok' },
+  { rank:7, medal:'⚠',  name:'Rahul Verma',     roll:'CS003', branch:'CSE',     batch:'Batch 2', pct:52,  score:112, status:'crit' },
+];
+
+var colors = { ok:'#00f5c3', crit:'#ff4d6d', warn:'#f5a623' };
+var tbody = document.getElementById('lb-tbody');
+if (tbody) {
+  lbData.forEach(function(s) {
+    var rc = s.rank === 1 ? '#ffd700' : s.rank === 2 ? '#c0c0c0' : s.rank === 3 ? '#cd7f32' : '#475569';
+    var pctColor = s.pct >= 75 ? '#00f5c3' : s.pct >= 60 ? '#f5a623' : '#ff4d6d';
+    var badgeBg = s.pct >= 75 ? 'rgba(0,245,195,.12)' : 'rgba(255,77,109,.12)';
+    var badgeC  = s.pct >= 75 ? '#00f5c3' : '#ff4d6d';
+    var badgeTxt = s.pct >= 75 ? 'Good' : 'Critical';
+    var initials = s.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2);
+    tbody.innerHTML += '<tr>' +
+      '<td><div style="width:32px;height:32px;border-radius:50%;background:' + rc + '20;border:2px solid ' + rc + ';display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:' + rc + ';">' + s.medal + '</div></td>' +
+      '<td><span class="lb-avatar">' + initials + '</span><span style="font-weight:600;">' + s.name + '</span><br/><span style="font-size:11px;color:#475569;">' + s.roll + '</span></td>' +
+      '<td><span style="background:rgba(0,245,195,.1);color:#00f5c3;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;">' + s.branch + '</span></td>' +
+      '<td><div class="lb-bar-wrap"><div class="lb-bar" style="width:' + s.pct + '%;background:' + pctColor + ';"></div></div><span style="color:' + pctColor + ';font-weight:800;font-size:13px;">' + s.pct + '%</span></td>' +
+      '<td><span style="font-family:\'Syne\',sans-serif;font-weight:800;color:' + rc + ';font-size:14px;">' + s.score + '</span></td>' +
+      '<td><span style="background:' + badgeBg + ';color:' + badgeC + ';border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">' + badgeTxt + '</span></td>' +
+      '</tr>';
+  });
+}
+
+/* ── STAGGER DELAY FOR GRIDS ── */
+document.querySelectorAll('.features-grid > *').forEach(function(el, i) {
+  el.style.transitionDelay = (i * 80) + 'ms';
+});
+document.querySelectorAll('.branches-grid > *').forEach(function(el, i) {
+  el.style.transitionDelay = (i * 60) + 'ms';
+});
+
+/* ── ACTIVE NAV LINK ON SCROLL ── */
+var sections = document.querySelectorAll('section[id], div[id="stats"]');
+var navLinks = document.querySelectorAll('.nav-link');
+window.addEventListener('scroll', function() {
+  var scrollY = window.scrollY + 100;
+  sections.forEach(function(sec) {
+    if (scrollY >= sec.offsetTop && scrollY < sec.offsetTop + sec.offsetHeight) {
+      navLinks.forEach(function(l) { l.style.color = ''; });
+      var active = document.querySelector('.nav-link[href="#' + sec.id + '"]');
+      if (active) active.style.color = '#00f5c3';
+    }
+  });
+});
+</script>
+
+</body>
+</html>

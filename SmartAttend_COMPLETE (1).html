@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MIT Vishwaprayag — Smart Attendance System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script>
+/* Silence ALL console output */
+(function(){var n=function(){};['log','warn','error','info','debug','assert','trace','group','groupCollapsed','groupEnd','table','dir','dirxml','count','countReset','time','timeEnd','timeLog','profile','profileEnd','clear'].forEach(function(m){try{console[m]=n;}catch(e){}});window.addEventListener('error',function(e){e.stopImmediatePropagation();e.preventDefault();},true);window.addEventListener('unhandledrejection',function(e){e.stopImmediatePropagation();e.preventDefault();},true);})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100%;}
+body{font-family:'DM Sans',sans-serif;overflow-x:hidden;transition:background .3s,color .3s;}
+body.dark{background:#05080f;color:#e2e8f0;}
+body.light{background:#f1f5f9;color:#0f172a;}
+body.dark ::-webkit-scrollbar-track{background:#0a0e1a;}
+body.dark ::-webkit-scrollbar-thumb{background:#1e293b;}
+body.light ::-webkit-scrollbar-track{background:#e2e8f0;}
+body.light ::-webkit-scrollbar-thumb{background:#94a3b8;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{border-radius:10px;}
+input,select,button,textarea{font-family:'DM Sans',sans-serif;}
+body.dark select option{background:#0a0e1a;color:#e2e8f0;}
+body.light select option{background:#f8fafc;color:#0f172a;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.94) translateY(16px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes scanLine{0%{top:6%}100%{top:90%}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes orbit{from{transform:rotate(0deg) translateX(105px) rotate(0deg)}to{transform:rotate(360deg) translateX(105px) rotate(-360deg)}}
+@keyframes orbit2{from{transform:rotate(180deg) translateX(78px) rotate(-180deg)}to{transform:rotate(540deg) translateX(78px) rotate(-540deg)}}
+@keyframes orbit3{from{transform:rotate(90deg) translateX(138px) rotate(-90deg)}to{transform:rotate(450deg) translateX(138px) rotate(-450deg)}}
+@keyframes logoBounce{0%,100%{transform:translateY(0) scale(1)}45%{transform:translateY(-10px) scale(1.04)}70%{transform:translateY(-4px) scale(1.01)}}
+@keyframes shine{0%{left:-100%}100%{left:200%}}
+@keyframes rankPop{0%{opacity:0;transform:scale(.7)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes bgGlow{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes progressFill{from{width:0%}to{width:var(--pw)}}
+</style>
+</head>
+<body class="dark">
+<div id="root"></div>
+<script id="app-code" type="text/babel">
+
+const {useState,useEffect,useCallback,useRef,useMemo,createContext,useContext}=React;
+const ThemeCtx=createContext({dark:true,toggle:()=>{}});
+const useTheme=()=>useContext(ThemeCtx);
+
+/* ══════════════════════════════════════════════
+   BRANCHES — 8 departments at MIT Vishwaprayag
+══════════════════════════════════════════════ */
+const BRANCHES=[
+  {id:"CSE",      label:"CSE",          full:"Computer Science & Engineering",         color:"#00f5c3"},
+  {id:"CSE_AIML", label:"CSE (AI & ML)",full:"CSE — Artificial Intelligence & Machine Learning", color:"#a78bfa"},
+  {id:"IT",       label:"IT",           full:"Information Technology",                 color:"#38bdf8"},
+  {id:"BCA",      label:"BCA",          full:"Bachelor of Computer Applications",      color:"#f59e0b"},
+  {id:"MCA",      label:"MCA",          full:"Master of Computer Applications",        color:"#ec4899"},
+  {id:"MBA",      label:"MBA",          full:"Master of Business Administration",      color:"#ff4d6d"},
+  {id:"BBA",      label:"BBA",          full:"Bachelor of Business Administration",    color:"#fb923c"},
+  {id:"PHARMA",   label:"Pharma",       full:"Bachelor of Pharmacy",                   color:"#34d399"},
+];
+
+/* ── SUBJECTS per branch ── */
+const SUBJECTS=[
+  /* ── CSE (ids 1–8, your original table) ── */
+  {id:1, branch:"CSE",      code:"AS1002",type:"BS",name:"Calculus",                         L:3,T:1,P:0,total:4},
+  {id:2, branch:"CSE",      code:"AS1201",type:"BS",name:"Applied Chemistry for Engineers",   L:3,T:0,P:0,total:3},
+  {id:3, branch:"CSE",      code:"AS1003",type:"PC",name:"Discrete Mathematics",              L:3,T:1,P:0,total:4},
+  {id:4, branch:"CSE",      code:"SE1008",type:"ES",name:"Digital Logic Design",              L:3,T:0,P:0,total:3},
+  {id:5, branch:"CSE",      code:"SC1141",type:"ES",name:"Data Structures using C",           L:3,T:0,P:0,total:3},
+  {id:6, branch:"CSE",      code:"SE1009",type:"ES",name:"Digital Logic Design Lab",          L:0,T:0,P:1,total:1},
+  {id:7, branch:"CSE",      code:"SC1142",type:"ES",name:"Data Structures using C Lab",       L:0,T:0,P:2,total:2},
+  {id:8, branch:"CSE",      code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+  /* ── CSE AI & ML (ids 9–16) ── */
+  {id:9, branch:"CSE_AIML", code:"AI1001",type:"CC",name:"Introduction to AI",                L:3,T:1,P:0,total:4},
+  {id:10,branch:"CSE_AIML", code:"AI1002",type:"CC",name:"Machine Learning Fundamentals",     L:3,T:0,P:0,total:3},
+  {id:11,branch:"CSE_AIML", code:"AI1003",type:"CC",name:"Deep Learning & Neural Networks",   L:3,T:0,P:0,total:3},
+  {id:12,branch:"CSE_AIML", code:"AI1004",type:"CC",name:"Natural Language Processing",       L:3,T:1,P:0,total:4},
+  {id:13,branch:"CSE_AIML", code:"AI1005",type:"PC",name:"Data Structures & Algorithms",      L:3,T:1,P:0,total:4},
+  {id:14,branch:"CSE_AIML", code:"AI1006",type:"PC",name:"Python for Data Science",           L:2,T:0,P:2,total:4},
+  {id:15,branch:"CSE_AIML", code:"AI1007",type:"ES",name:"Computer Vision Lab",               L:0,T:0,P:2,total:2},
+  {id:16,branch:"CSE_AIML", code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+  /* ── IT (ids 17–24) ── */
+  {id:17,branch:"IT",       code:"IT1001",type:"CC",name:"Programming in C",                  L:3,T:1,P:0,total:4},
+  {id:18,branch:"IT",       code:"IT1002",type:"CC",name:"Database Management Systems",       L:3,T:0,P:0,total:3},
+  {id:19,branch:"IT",       code:"IT1003",type:"CC",name:"Computer Networks",                 L:3,T:1,P:0,total:4},
+  {id:20,branch:"IT",       code:"IT1004",type:"CC",name:"Web Technologies",                  L:2,T:0,P:2,total:4},
+  {id:21,branch:"IT",       code:"IT1005",type:"ES",name:"Operating Systems",                 L:3,T:0,P:0,total:3},
+  {id:22,branch:"IT",       code:"IT1006",type:"ES",name:"Network Lab",                       L:0,T:0,P:2,total:2},
+  {id:23,branch:"IT",       code:"IT1007",type:"ES",name:"DBMS Lab",                          L:0,T:0,P:2,total:2},
+  {id:24,branch:"IT",       code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+  /* ── BCA (ids 25–32) ── */
+  {id:25,branch:"BCA",      code:"BCA101",type:"CC",name:"Fundamentals of Computing",         L:3,T:1,P:0,total:4},
+  {id:26,branch:"BCA",      code:"BCA102",type:"CC",name:"Programming in C++",                L:3,T:0,P:2,total:5},
+  {id:27,branch:"BCA",      code:"BCA103",type:"CC",name:"Database Systems",                  L:3,T:0,P:0,total:3},
+  {id:28,branch:"BCA",      code:"BCA104",type:"CC",name:"Web Development",                   L:2,T:0,P:2,total:4},
+  {id:29,branch:"BCA",      code:"BCA105",type:"PC",name:"Networking Basics",                 L:3,T:1,P:0,total:4},
+  {id:30,branch:"BCA",      code:"BCA106",type:"ES",name:"Software Engineering",              L:3,T:0,P:0,total:3},
+  {id:31,branch:"BCA",      code:"BCA107",type:"ES",name:"Programming Lab",                   L:0,T:0,P:2,total:2},
+  {id:32,branch:"BCA",      code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+  /* ── MCA (ids 33–40) ── */
+  {id:33,branch:"MCA",      code:"MCA101",type:"CC",name:"Advanced Algorithms",               L:3,T:1,P:0,total:4},
+  {id:34,branch:"MCA",      code:"MCA102",type:"CC",name:"Advanced DBMS",                     L:3,T:0,P:0,total:3},
+  {id:35,branch:"MCA",      code:"MCA103",type:"CC",name:"Cloud Computing",                   L:3,T:0,P:0,total:3},
+  {id:36,branch:"MCA",      code:"MCA104",type:"CC",name:"Software Testing",                  L:3,T:1,P:0,total:4},
+  {id:37,branch:"MCA",      code:"MCA105",type:"PC",name:"Full Stack Development",            L:2,T:0,P:2,total:4},
+  {id:38,branch:"MCA",      code:"MCA106",type:"ES",name:"Cyber Security",                    L:3,T:0,P:0,total:3},
+  {id:39,branch:"MCA",      code:"MCA107",type:"ES",name:"Project Lab",                       L:0,T:0,P:4,total:4},
+  {id:40,branch:"MCA",      code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+  /* ── MBA (ids 41–48) ── */
+  {id:41,branch:"MBA",      code:"MBA101",type:"CC",name:"Management & Organizational Behavior",L:3,T:1,P:0,total:4},
+  {id:42,branch:"MBA",      code:"MBA102",type:"CC",name:"Financial Accounting",               L:3,T:0,P:0,total:3},
+  {id:43,branch:"MBA",      code:"MBA103",type:"CC",name:"Marketing Management",               L:3,T:1,P:0,total:4},
+  {id:44,branch:"MBA",      code:"MBA104",type:"CC",name:"Business Statistics",                L:3,T:0,P:0,total:3},
+  {id:45,branch:"MBA",      code:"MBA105",type:"PC",name:"Human Resource Management",         L:3,T:0,P:0,total:3},
+  {id:46,branch:"MBA",      code:"MBA106",type:"ES",name:"Business Communication",             L:2,T:1,P:0,total:3},
+  {id:47,branch:"MBA",      code:"MBA107",type:"ES",name:"Entrepreneurship & Innovation",      L:3,T:0,P:0,total:3},
+  {id:48,branch:"MBA",      code:"MBA108",type:"UC",name:"Digital Business Transformation",   L:2,T:0,P:0,total:2},
+  /* ── BBA (ids 49–56) ── */
+  {id:49,branch:"BBA",      code:"BBA101",type:"CC",name:"Principles of Management",          L:3,T:1,P:0,total:4},
+  {id:50,branch:"BBA",      code:"BBA102",type:"CC",name:"Business Economics",                L:3,T:0,P:0,total:3},
+  {id:51,branch:"BBA",      code:"BBA103",type:"CC",name:"Financial Management",              L:3,T:1,P:0,total:4},
+  {id:52,branch:"BBA",      code:"BBA104",type:"CC",name:"Marketing Fundamentals",            L:3,T:0,P:0,total:3},
+  {id:53,branch:"BBA",      code:"BBA105",type:"PC",name:"Business Law",                      L:2,T:1,P:0,total:3},
+  {id:54,branch:"BBA",      code:"BBA106",type:"ES",name:"Accounting Principles",             L:3,T:0,P:0,total:3},
+  {id:55,branch:"BBA",      code:"BBA107",type:"ES",name:"Business Communication",            L:2,T:1,P:0,total:3},
+  {id:56,branch:"BBA",      code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+  /* ── PHARMA (ids 57–64) ── */
+  {id:57,branch:"PHARMA",   code:"PH1001",type:"CC",name:"Pharmaceutical Chemistry",          L:3,T:1,P:0,total:4},
+  {id:58,branch:"PHARMA",   code:"PH1002",type:"CC",name:"Pharmacology",                      L:3,T:0,P:0,total:3},
+  {id:59,branch:"PHARMA",   code:"PH1003",type:"CC",name:"Pharmaceutics",                     L:3,T:1,P:0,total:4},
+  {id:60,branch:"PHARMA",   code:"PH1004",type:"CC",name:"Pharmacognosy",                     L:3,T:0,P:0,total:3},
+  {id:61,branch:"PHARMA",   code:"PH1005",type:"PC",name:"Biochemistry",                      L:3,T:1,P:0,total:4},
+  {id:62,branch:"PHARMA",   code:"PH1006",type:"ES",name:"Drug Regulatory Affairs",           L:2,T:0,P:0,total:2},
+  {id:63,branch:"PHARMA",   code:"PH1007",type:"ES",name:"Pharma Lab Practical",              L:0,T:0,P:4,total:4},
+  {id:64,branch:"PHARMA",   code:"UC1201",type:"UC",name:"AI for All",                        L:0,T:1,P:2,total:3},
+];
+
+const TC={BS:"#00f5c3",PC:"#a78bfa",ES:"#f59e0b",UC:"#38bdf8",CC:"#38bdf8"};
+const AVC=["#00f5c3","#38bdf8","#a78bfa","#f59e0b","#ff4d6d","#ec4899","#34d399","#fb923c"];
+
+/* helper: get subject IDs for a branch */
+const branchSubs=b=>SUBJECTS.filter(s=>s.branch===b).map(s=>s.id);
+
+/* ── STUDENTS — 5+ per branch ── */
+const DEF_STUDENTS=[
+  /* CSE */
+  {id:1, name:"Arjun Sharma",     roll:"CS001",cls:"CSE-A",   branch:"CSE",      batch:"Batch 1",parentEmail:"parent.arjun@gmail.com",   subjects:branchSubs("CSE"),      faceRegistered:false},
+  {id:2, name:"Priya Mehta",      roll:"CS002",cls:"CSE-A",   branch:"CSE",      batch:"Batch 1",parentEmail:"parent.priya@gmail.com",    subjects:branchSubs("CSE"),      faceRegistered:false},
+  {id:3, name:"Rahul Verma",      roll:"CS003",cls:"CSE-B",   branch:"CSE",      batch:"Batch 2",parentEmail:"parent.rahul@gmail.com",    subjects:[1,3,5,7,8],            faceRegistered:false},
+  {id:4, name:"Sneha Patil",      roll:"CS004",cls:"CSE-B",   branch:"CSE",      batch:"Batch 2",parentEmail:"parent.sneha@gmail.com",    subjects:[1,2,4,6,7,8],          faceRegistered:false},
+  {id:5, name:"Vikram Singh",     roll:"CS005",cls:"CSE-A",   branch:"CSE",      batch:"Batch 1",parentEmail:"parent.vikram@gmail.com",   subjects:branchSubs("CSE"),      faceRegistered:false},
+  {id:6, name:"Ananya Iyer",      roll:"CS006",cls:"CSE-C",   branch:"CSE",      batch:"Batch 1",parentEmail:"parent.ananya@gmail.com",   subjects:branchSubs("CSE"),      faceRegistered:false},
+  /* CSE AI & ML */
+  {id:7, name:"Rohan Gupta",      roll:"AI001",cls:"AIML-A",  branch:"CSE_AIML", batch:"Batch 1",parentEmail:"parent.rohan@gmail.com",    subjects:branchSubs("CSE_AIML"), faceRegistered:false},
+  {id:8, name:"Divya Nair",       roll:"AI002",cls:"AIML-A",  branch:"CSE_AIML", batch:"Batch 1",parentEmail:"parent.divya@gmail.com",    subjects:branchSubs("CSE_AIML"), faceRegistered:false},
+  {id:9, name:"Kiran Desai",      roll:"AI003",cls:"AIML-B",  branch:"CSE_AIML", batch:"Batch 2",parentEmail:"parent.kiran@gmail.com",    subjects:[9,10,11,13,15,16],     faceRegistered:false},
+  {id:10,name:"Pooja Joshi",      roll:"AI004",cls:"AIML-B",  branch:"CSE_AIML", batch:"Batch 2",parentEmail:"parent.pooja@gmail.com",    subjects:branchSubs("CSE_AIML"), faceRegistered:false},
+  {id:11,name:"Siddharth Rao",    roll:"AI005",cls:"AIML-A",  branch:"CSE_AIML", batch:"Batch 1",parentEmail:"parent.sid@gmail.com",      subjects:[9,10,12,13,14,16],     faceRegistered:false},
+  /* IT */
+  {id:12,name:"Meera Krishnan",   roll:"IT001",cls:"IT-A",    branch:"IT",       batch:"Batch 1",parentEmail:"parent.meera@gmail.com",    subjects:branchSubs("IT"),       faceRegistered:false},
+  {id:13,name:"Aakash Patel",     roll:"IT002",cls:"IT-A",    branch:"IT",       batch:"Batch 1",parentEmail:"parent.aakash@gmail.com",   subjects:branchSubs("IT"),       faceRegistered:false},
+  {id:14,name:"Riya Shah",        roll:"IT003",cls:"IT-B",    branch:"IT",       batch:"Batch 2",parentEmail:"parent.riya@gmail.com",     subjects:[17,18,20,22,24],       faceRegistered:false},
+  {id:15,name:"Nikhil Tiwari",    roll:"IT004",cls:"IT-B",    branch:"IT",       batch:"Batch 2",parentEmail:"parent.nikhil@gmail.com",   subjects:branchSubs("IT"),       faceRegistered:false},
+  {id:16,name:"Kavya Menon",      roll:"IT005",cls:"IT-A",    branch:"IT",       batch:"Batch 1",parentEmail:"parent.kavya@gmail.com",    subjects:[17,19,20,21,23,24],    faceRegistered:false},
+  /* BCA */
+  {id:17,name:"Ishaan Bose",      roll:"BC001",cls:"BCA-A",   branch:"BCA",      batch:"Batch 1",parentEmail:"parent.ishaan@gmail.com",   subjects:branchSubs("BCA"),      faceRegistered:false},
+  {id:18,name:"Ritika Saxena",    roll:"BC002",cls:"BCA-A",   branch:"BCA",      batch:"Batch 1",parentEmail:"parent.ritika@gmail.com",   subjects:branchSubs("BCA"),      faceRegistered:false},
+  {id:19,name:"Manav Khanna",     roll:"BC003",cls:"BCA-B",   branch:"BCA",      batch:"Batch 2",parentEmail:"parent.manav@gmail.com",    subjects:[25,26,28,30,32],       faceRegistered:false},
+  {id:20,name:"Shreya Dubey",     roll:"BC004",cls:"BCA-B",   branch:"BCA",      batch:"Batch 2",parentEmail:"parent.shreya@gmail.com",   subjects:branchSubs("BCA"),      faceRegistered:false},
+  {id:21,name:"Yash Kapoor",      roll:"BC005",cls:"BCA-A",   branch:"BCA",      batch:"Batch 1",parentEmail:"parent.yash@gmail.com",     subjects:[25,27,28,29,31,32],    faceRegistered:false},
+  /* MCA */
+  {id:22,name:"Tanvi Malhotra",   roll:"MC001",cls:"MCA-A",   branch:"MCA",      batch:"Batch 1",parentEmail:"parent.tanvi@gmail.com",    subjects:branchSubs("MCA"),      faceRegistered:false},
+  {id:23,name:"Aryan Chaudhary",  roll:"MC002",cls:"MCA-A",   branch:"MCA",      batch:"Batch 1",parentEmail:"parent.aryan@gmail.com",    subjects:branchSubs("MCA"),      faceRegistered:false},
+  {id:24,name:"Naina Sinha",      roll:"MC003",cls:"MCA-B",   branch:"MCA",      batch:"Batch 2",parentEmail:"parent.naina@gmail.com",    subjects:[33,34,36,37,40],       faceRegistered:false},
+  {id:25,name:"Varun Pillai",     roll:"MC004",cls:"MCA-B",   branch:"MCA",      batch:"Batch 2",parentEmail:"parent.varun@gmail.com",    subjects:branchSubs("MCA"),      faceRegistered:false},
+  {id:26,name:"Diya Reddy",       roll:"MC005",cls:"MCA-A",   branch:"MCA",      batch:"Batch 1",parentEmail:"parent.diya@gmail.com",     subjects:[33,35,37,38,39,40],    faceRegistered:false},
+  /* MBA */
+  {id:27,name:"Aditya Kumar",     roll:"MB001",cls:"MBA-A",   branch:"MBA",      batch:"Batch 1",parentEmail:"parent.aditya@gmail.com",   subjects:branchSubs("MBA"),      faceRegistered:false},
+  {id:28,name:"Simran Ahuja",     roll:"MB002",cls:"MBA-A",   branch:"MBA",      batch:"Batch 1",parentEmail:"parent.simran@gmail.com",   subjects:branchSubs("MBA"),      faceRegistered:false},
+  {id:29,name:"Rohit Bansal",     roll:"MB003",cls:"MBA-B",   branch:"MBA",      batch:"Batch 2",parentEmail:"parent.rohit@gmail.com",    subjects:[41,42,44,46,48],       faceRegistered:false},
+  {id:30,name:"Pooja Aggarwal",   roll:"MB004",cls:"MBA-B",   branch:"MBA",      batch:"Batch 2",parentEmail:"parent.poojaa@gmail.com",   subjects:branchSubs("MBA"),      faceRegistered:false},
+  {id:31,name:"Saurabh Mishra",   roll:"MB005",cls:"MBA-A",   branch:"MBA",      batch:"Batch 1",parentEmail:"parent.saurabh@gmail.com",  subjects:[41,43,44,45,47,48],    faceRegistered:false},
+  /* BBA */
+  {id:32,name:"Neha Tripathi",    roll:"BB001",cls:"BBA-A",   branch:"BBA",      batch:"Batch 1",parentEmail:"parent.neha@gmail.com",     subjects:branchSubs("BBA"),      faceRegistered:false},
+  {id:33,name:"Sameer Jain",      roll:"BB002",cls:"BBA-A",   branch:"BBA",      batch:"Batch 1",parentEmail:"parent.sameer@gmail.com",   subjects:branchSubs("BBA"),      faceRegistered:false},
+  {id:34,name:"Prachi Gupta",     roll:"BB003",cls:"BBA-B",   branch:"BBA",      batch:"Batch 2",parentEmail:"parent.prachi@gmail.com",   subjects:[49,50,52,54,56],       faceRegistered:false},
+  {id:35,name:"Aman Rawat",       roll:"BB004",cls:"BBA-B",   branch:"BBA",      batch:"Batch 2",parentEmail:"parent.aman@gmail.com",     subjects:branchSubs("BBA"),      faceRegistered:false},
+  {id:36,name:"Shalini Yadav",    roll:"BB005",cls:"BBA-A",   branch:"BBA",      batch:"Batch 1",parentEmail:"parent.shalini@gmail.com",  subjects:[49,51,52,53,55,56],    faceRegistered:false},
+  /* PHARMA */
+  {id:37,name:"Gaurav Sethi",     roll:"PH001",cls:"PH-A",    branch:"PHARMA",   batch:"Batch 1",parentEmail:"parent.gaurav@gmail.com",   subjects:branchSubs("PHARMA"),   faceRegistered:false},
+  {id:38,name:"Ankita Singh",     roll:"PH002",cls:"PH-A",    branch:"PHARMA",   batch:"Batch 1",parentEmail:"parent.ankita@gmail.com",   subjects:branchSubs("PHARMA"),   faceRegistered:false},
+  {id:39,name:"Deepak Nair",      roll:"PH003",cls:"PH-B",    branch:"PHARMA",   batch:"Batch 2",parentEmail:"parent.deepak@gmail.com",   subjects:[57,58,60,62,64],       faceRegistered:false},
+  {id:40,name:"Bhavna Tiwari",    roll:"PH004",cls:"PH-B",    branch:"PHARMA",   batch:"Batch 2",parentEmail:"parent.bhavna@gmail.com",   subjects:branchSubs("PHARMA"),   faceRegistered:false},
+  {id:41,name:"Chirag Vora",      roll:"PH005",cls:"PH-A",    branch:"PHARMA",   batch:"Batch 1",parentEmail:"parent.chirag@gmail.com",   subjects:[57,59,61,62,63,64],    faceRegistered:false},
+];
+
+function seedLog(){
+  const log=[],now=new Date();
+  DEF_STUDENTS.forEach(st=>{
+    for(let d=30;d>=1;d--){
+      const dt=new Date(now);dt.setDate(now.getDate()-d);
+      if([0,6].includes(dt.getDay()))continue;
+      const ds=dt.toISOString().slice(0,10);
+      /* vary attendance rates per student for realistic data */
+      const lowIds=[3,9,19,24,29,34,39];
+      const midIds=[5,14,23,30,35];
+      const ch=lowIds.includes(st.id)?0.50:midIds.includes(st.id)?0.67:0.85;
+      st.subjects.forEach(sid=>{
+        log.push({date:ds,studentId:st.id,subjectId:sid,present:Math.random()<ch,method:"manual"});
+      });
+    }
+  });
+  return log;
+}
+
+/* ── STORAGE ── */
+const DATA_VERSION="v3_branches";
+(function(){try{if(localStorage.getItem("sa_data_ver")!==DATA_VERSION){["sa_students","sa_log","sa_alerts"].forEach(k=>localStorage.removeItem(k));localStorage.setItem("sa_data_ver",DATA_VERSION);}}catch{}})();
+const LS={
+  get:(k,fb)=>{
+    try{
+      const v=localStorage.getItem(k);
+      if(v===null||v===undefined||v==="undefined"||v==="null")return fb;
+      const parsed=JSON.parse(v);
+      return parsed!==null&&parsed!==undefined?parsed:fb;
+    }catch{return fb;}
+  },
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+  del:(k)=>{try{localStorage.removeItem(k);}catch{}},
+  clear:()=>{
+    try{
+      ["sa_dark","sa_screen","sa_session","sa_profs","sa_students","sa_log","sa_alerts"].forEach(k=>localStorage.removeItem(k));
+    }catch{}
+  }
+};
+
+/* ── AUTH BACKEND — pure functions, fully synchronous ── */
+function authLogin(emailInput, passInput, profsList){
+  try{
+    if(!emailInput||!passInput)return{ok:false,msg:"Please enter both email and password."};
+    const email=emailInput.trim().toLowerCase();
+    const found=profsList.find(p=>p&&p.email&&p.email.trim().toLowerCase()===email);
+    if(!found)return{ok:false,msg:"No account found with that email address."};
+    if(found.password!==passInput.trim())return{ok:false,msg:"Incorrect password. Please try again."};
+    return{ok:true,prof:{...found}};
+  }catch(e){
+    return{ok:false,msg:"Login error. Please try again."};
+  }
+}
+function authRegister(name,email,pass,dept,role,profsList){
+  try{
+    if(!name||!email||!pass)return{ok:false,msg:"Name, email and password are all required."};
+    if(pass.length<6)return{ok:false,msg:"Password must be at least 6 characters."};
+    const norm=email.trim().toLowerCase();
+    if(profsList.find(p=>p&&p.email&&p.email.trim().toLowerCase()===norm))
+      return{ok:false,msg:"An account with this email already exists."};
+    const np={
+      id:Date.now(),
+      name:name.trim(),
+      email:email.trim(),
+      password:pass,
+      role:role||"Professor",
+      dept:dept||"Computer Science",
+      avatar:name.trim().split(" ").map(w=>w[0]||"").join("").slice(0,2).toUpperCase()||"PR"
+    };
+    return{ok:true,prof:np};
+  }catch(e){
+    return{ok:false,msg:"Registration error. Please try again."};
+  }
+}
+
+/* ── AI APIS ── */
+async function apiLiveness(b64){
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+          {type:"text",text:`Liveness detection for attendance. Is this LIVE face or SPOOF (printed photo/phone/paper/card/mask)?
+Spoof clues: flat 2D, screen glow, paper edges, moire, glossy, bezels, backlight, halftone, hands holding.
+JSON only: {"live":true/false,"confidence":0-100,"reason":"brief","spoof_type":"none/printed_photo/screen/paper/card/other","warning":"msg"}`}
+        ]}]})});
+    const d=await r.json();
+    return JSON.parse((d.content?.find(b=>b.type==="text")?.text||"{}").replace(/```json|```/g,"").trim());
+  }catch{return{live:false,confidence:0,reason:"API error",spoof_type:"unknown",warning:"Check connection."};}}
+
+async function apiInsight(students,log){
+  try{
+    const stats=students.map(s=>({name:s.name,pct:calcOverall(s.id,s.subjects,log),batch:s.batch}));
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:220,
+        messages:[{role:"user",content:`Attendance data analysis. Give exactly 3 bullet insights (emoji + max 18 words each):\n${JSON.stringify(stats)}`}]})});
+    const d=await r.json();return d.content?.find(b=>b.type==="text")?.text||"";
+  }catch{return"• Could not load AI insights. Check network connection.";}}
+
+async function apiGmail(st,pct,bd){
+  try{
+    const lines=bd.map(s=>`• ${s.name} (${s.code}): ${s.pct}% — ${s.attended}/${s.held}`).join("\n");
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,
+        mcp_servers:[{type:"url",url:"https://gmail.mcp.claude.com/mcp",name:"gmail"}],
+        messages:[{role:"user",content:`Send email via Gmail to ${st.parentEmail}.\nSubject: ⚠️ Low Attendance Alert — ${st.name} (${st.roll})\nBody:\nDear Parent/Guardian,\n\nMIT Vishwaprayag Smart Attendance System Alert.\n\nStudent: ${st.name} | Roll: ${st.roll} | Class: ${st.cls} | ${st.batch}\nOverall Attendance: ${pct}% (Required: 75%)\n\n${lines}\n\nPlease contact MIT Vishwaprayag immediately.\n\nRegards, SmartAttend AI`}]})});
+    const d=await r.json();return{ok:true,sim:!d.content?.some(b=>b.type==="mcp_tool_use"||b.type==="tool_use")};
+  }catch{return{ok:false,sim:true};}}
+
+/* ── HELPERS ── */
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const ini=n=>n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+const pctCol=p=>p>=75?"#00f5c3":p>=60?"#f5a623":"#ff4d6d";
+const pctBdg=p=>p>=75?{t:"Good",c:"ok"}:p>=60?{t:"Warning",c:"warn"}:{t:"Critical",c:"crit"};
+function calcSub(sid,subId,log){
+  const r=log.filter(x=>x.studentId===sid&&x.subjectId===subId);
+  if(!r.length)return{pct:100,held:0,attended:0};
+  const held=r.length,attended=r.filter(x=>x.present).length;
+  return{pct:Math.round(attended/held*100),held,attended};}
+function calcOverall(sid,subs,log){
+  if(!subs.length)return 100;
+  const a=subs.map(s=>calcSub(sid,s,log));
+  return Math.round(a.reduce((x,y)=>x+y.pct,0)/a.length);}
+function calc15Days(sid,log){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-15);
+  const cutStr=cutoff.toISOString().slice(0,10);
+  const recent=log.filter(r=>r.studentId===sid&&r.date>cutStr);
+  const days=new Set(recent.map(r=>r.date));
+  const pDays=new Set(recent.filter(r=>r.present).map(r=>r.date));
+  return{total:days.size,present:pDays.size,pct:days.size?Math.round(pDays.size/days.size*100):0};}
+
+/* ══════════════════════════════════════════
+   WELCOME SCREEN
+══════════════════════════════════════════ */
+function WelcomeScreen({onEnter}){
+  const[show,setShow]=useState(false);
+  useEffect(()=>{setTimeout(()=>setShow(true),80);},[]);
+  const features=[
+    {ico:"🔬",title:"Face Liveness Scanner",desc:"Claude Vision AI detects real face vs printed photo/screen in real-time"},
+    {ico:"🏆",title:"Competition Leaderboard",desc:"Ranks students by last 15-day attendance with animated gold/silver/bronze podium"},
+    {ico:"📧",title:"Gmail Parent Alerts",desc:"Auto-sends email alerts via Gmail MCP when attendance drops below 75%"},
+    {ico:"🌙",title:"Dark & Light Mode",desc:"Instant theme switching — preference saved across sessions"},
+    {ico:"📚",title:"8 Real Courses",desc:"Your actual semester subjects AS1002–UC1201 with L/T/P credits totaling 23"},
+    {ico:"🏷️",title:"Batch Management",desc:"Assign Batch 1 (Morning) or Batch 2 (Afternoon) with one click"},
+  ];
+  return(
+    <div style={{minHeight:"100vh",background:"#03060e",color:"#e2e8f0",fontFamily:"'DM Sans',sans-serif",overflowX:"hidden",position:"relative"}}>
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(0,245,195,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,195,.025) 1px,transparent 1px)",backgroundSize:"44px 44px",zIndex:0,pointerEvents:"none"}}/>
+      <div style={{position:"fixed",top:"-25%",left:"-15%",width:"65vw",height:"65vw",borderRadius:"50%",background:"radial-gradient(circle,rgba(0,245,195,.06) 0%,transparent 68%)",zIndex:0,pointerEvents:"none",animation:"bgGlow 4s ease-in-out infinite"}}/>
+      <div style={{position:"fixed",bottom:"-20%",right:"-10%",width:"55vw",height:"55vw",borderRadius:"50%",background:"radial-gradient(circle,rgba(56,189,248,.05) 0%,transparent 68%)",zIndex:0,pointerEvents:"none",animation:"bgGlow 5s ease-in-out infinite reverse"}}/>
+      <div style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto",padding:"0 28px"}}>
+        {/* NAV */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"22px 0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>🎓</div>
+            <div>
+              <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:13,color:"#00f5c3",letterSpacing:"-.2px"}}>MIT VISHWAPRAYAG</div>
+              <div style={{fontSize:9,color:"#334155",letterSpacing:"1.5px",textTransform:"uppercase"}}>University</div>
+            </div>
+          </div>
+          <button onClick={onEnter} style={{background:"rgba(0,245,195,.09)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.3)",padding:"9px 22px",borderRadius:22,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit",transition:"all .2s"}}>Sign In →</button>
+        </div>
+        {/* HERO */}
+        <div style={{textAlign:"center",padding:"64px 0 52px",opacity:show?1:0,transform:show?"none":"translateY(16px)",transition:"all .7s ease"}}>
+          <div style={{position:"relative",width:200,height:200,margin:"0 auto 36px"}}>
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{width:86,height:86,borderRadius:"50%",background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,boxShadow:"0 0 44px rgba(0,245,195,.28)",animation:"logoBounce 3s ease-in-out infinite"}}>🎓</div>
+            </div>
+            {[{a:"orbit",c:"#00f5c3"},{a:"orbit2",c:"#38bdf8"},{a:"orbit3",c:"#a78bfa"}].map((o,i)=>(
+              <div key={i} style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:o.c,boxShadow:`0 0 8px ${o.c}`,animation:`${o.a} ${4+i}s linear infinite`}}/>
+              </div>
+            ))}
+            <div style={{position:"absolute",inset:10,borderRadius:"50%",border:"1px dashed rgba(0,245,195,.14)",pointerEvents:"none"}}/>
+            <div style={{position:"absolute",inset:28,borderRadius:"50%",border:"1px dashed rgba(56,189,248,.09)",pointerEvents:"none"}}/>
+          </div>
+          <div style={{display:"inline-block",background:"rgba(0,245,195,.06)",border:"1px solid rgba(0,245,195,.2)",borderRadius:20,padding:"5px 18px",fontSize:11,color:"#00f5c3",fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",marginBottom:18}}>MIT Vishwaprayag University</div>
+          <h1 style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"clamp(30px,5vw,56px)",lineHeight:1.1,letterSpacing:"-1.5px",marginBottom:14}}>
+            <span style={{background:"linear-gradient(135deg,#e2e8f0,#94a3b8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Smart </span>
+            <span style={{background:"linear-gradient(135deg,#00f5c3,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Attendance</span>
+            <br/><span style={{background:"linear-gradient(135deg,#e2e8f0,#94a3b8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>System</span>
+          </h1>
+          <p style={{fontSize:15,color:"#475569",maxWidth:520,margin:"0 auto 38px",lineHeight:1.75}}>AI-powered attendance tracking with face liveness detection, automated parent alerts, competition leaderboards and real-time analytics — built for MIT Vishwaprayag faculty.</p>
+          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={onEnter} style={{background:"linear-gradient(135deg,#00f5c3,#38bdf8)",color:"#000",border:"none",padding:"14px 38px",borderRadius:30,cursor:"pointer",fontSize:15,fontWeight:800,fontFamily:"Syne,sans-serif",boxShadow:"0 8px 32px rgba(0,245,195,.3)",letterSpacing:"-.2px"}}>🚀 Get Started</button>
+            <button onClick={onEnter} style={{background:"transparent",color:"#94a3b8",border:"1px solid rgba(148,163,184,.3)",padding:"14px 32px",borderRadius:30,cursor:"pointer",fontSize:15,fontWeight:600,fontFamily:"inherit"}}>Sign In →</button>
+          </div>
+          <div style={{display:"flex",justifyContent:"center",marginTop:56,borderTop:"1px solid rgba(255,255,255,.05)",paddingTop:36,gap:0}}>
+            {[["8","Courses"],["23","Credits"],["2","Batches"],["AI","Powered"]].map((s,i)=>(
+              <div key={i} style={{padding:"0 30px",borderRight:i<3?"1px solid rgba(255,255,255,.05)":undefined,textAlign:"center"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:28,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{s[0]}</div>
+                <div style={{fontSize:10,color:"#334155",textTransform:"uppercase",letterSpacing:"1px",marginTop:2}}>{s[1]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* FEATURES */}
+        <div style={{paddingBottom:72}}>
+          <div style={{textAlign:"center",marginBottom:36}}>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:28,marginBottom:8}}>Everything You Need</div>
+            <div style={{fontSize:14,color:"#475569"}}>Built for MIT Vishwaprayag professors and administrators</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(285px,1fr))",gap:14}}>
+            {features.map((f,i)=>(
+              <div key={i} style={{background:"rgba(255,255,255,.023)",border:"1px solid rgba(255,255,255,.055)",borderRadius:14,padding:"22px",backdropFilter:"blur(4px)"}}>
+                <div style={{fontSize:28,marginBottom:12}}>{f.ico}</div>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:15,marginBottom:6}}>{f.title}</div>
+                <div style={{fontSize:13,color:"#475569",lineHeight:1.65}}>{f.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{borderTop:"1px solid rgba(255,255,255,.05)",padding:"20px 0",display:"flex",justifyContent:"space-between",fontSize:11,color:"#334155",flexWrap:"wrap",gap:8}}>
+          <span>© 2025 MIT Vishwaprayag University · Smart Attendance System</span>
+          <span>Powered by Claude AI · Gmail MCP · React 18</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   LOGIN PAGE — fully working auth UI
+══════════════════════════════════════════ */
+function LoginPage({onLogin,profs,onAddProf}){
+  const[tab,setTab]=useState("login"); // "login"|"register"|"forgot"
+  /* login fields */
+  const[email,setEmail]=useState("");
+  const[pass,setPass]=useState("");
+  const[showP,setShowP]=useState(false);
+  /* register fields */
+  const[rName,setRName]=useState("");
+  const[rEmail,setREmail]=useState("");
+  const[rPass,setRPass]=useState("");
+  const[rConf,setRConf]=useState("");
+  const[rDept,setRDept]=useState("Computer Science");
+  const[rRole,setRRole]=useState("Professor");
+  /* UI state */
+  const[err,setErr]=useState("");
+  const[succ,setSucc]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[shake,setShake]=useState(false);
+
+  /* ── LOGIN SUBMIT ── */
+  function handleLogin(e){
+    e.preventDefault();
+    e.stopPropagation();
+    setErr("");
+    setSucc("");
+    if(!email.trim()||!pass){
+      setErr("Please enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    /* Use setTimeout to show loading spinner, then check synchronously */
+    setTimeout(function(){
+      try{
+        const result=authLogin(email,pass,profs);
+        setLoading(false);
+        if(result.ok){
+          onLogin(result.prof);
+        }else{
+          setErr(result.msg);
+          setShake(true);
+          setTimeout(()=>setShake(false),500);
+        }
+      }catch(ex){
+        setLoading(false);
+        setErr("Unexpected error. Please try again.");
+      }
+    },600);
+  }
+
+  /* ── REGISTER SUBMIT ── */
+  function handleRegister(e){
+    e.preventDefault();
+    e.stopPropagation();
+    setErr("");
+    if(!rName.trim()||!rEmail.trim()||!rPass){
+      setErr("Please fill in all required fields.");
+      return;
+    }
+    if(rPass!==rConf){
+      setErr("Passwords do not match.");
+      return;
+    }
+    setLoading(true);
+    setTimeout(function(){
+      try{
+        const result=authRegister(rName,rEmail,rPass,rDept,rRole,profs);
+        setLoading(false);
+        if(result.ok){
+          onAddProf(result.prof);
+          setSucc("Account created successfully! You can now sign in.");
+          setTab("login");
+          setEmail(rEmail.trim());
+          setPass("");
+          setRName("");setREmail("");setRPass("");setRConf("");
+        }else{
+          setErr(result.msg);
+        }
+      }catch(ex){
+        setLoading(false);
+        setErr("Registration error. Please try again.");
+      }
+    },500);
+  }
+
+  /* ── FILL DEMO CREDENTIALS ── */
+  function fillDemo(prof){
+    setEmail(prof.email);
+    setPass(prof.password);
+    setErr("");
+    setTab("login");
+  }
+
+  /* ── STYLES ── */
+  const inp={
+    width:"100%",background:"rgba(255,255,255,.05)",
+    border:"1px solid rgba(255,255,255,.12)",
+    borderRadius:10,padding:"12px 15px",color:"#e2e8f0",
+    fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",
+    transition:"border-color .2s",display:"block"
+  };
+  const lbl={display:"block",fontSize:10.5,textTransform:"uppercase",letterSpacing:"1.2px",color:"#475569",marginBottom:7,fontWeight:700};
+  const safePfx={["WebkitBackgroundClip"]:"text",["WebkitTextFillColor"]:"transparent"};
+
+  return(
+    <div style={{minHeight:"100vh",background:"#03060e",display:"flex",fontFamily:"'DM Sans',sans-serif",overflowX:"hidden",position:"relative"}}>
+      {/* BG GRID */}
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(0,245,195,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,195,.022) 1px,transparent 1px)",backgroundSize:"44px 44px",zIndex:0,pointerEvents:"none"}}/>
+      <div style={{position:"fixed",top:"-30%",right:"-10%",width:"65vw",height:"65vh",borderRadius:"50%",background:"radial-gradient(circle,rgba(0,245,195,.06) 0%,transparent 70%)",zIndex:0,pointerEvents:"none"}}/>
+      <div style={{position:"fixed",bottom:"-20%",left:"-10%",width:"50vw",height:"50vh",borderRadius:"50%",background:"radial-gradient(circle,rgba(56,189,248,.05) 0%,transparent 70%)",zIndex:0,pointerEvents:"none"}}/>
+
+      {/* ──── LEFT PANEL ──── */}
+      <div style={{flex:"0 0 55%",display:"flex",flexDirection:"column",justifyContent:"center",padding:"48px 72px",position:"relative",zIndex:1,overflowY:"auto",maxHeight:"100vh"}}>
+        <div style={{maxWidth:460,margin:"0 auto",width:"100%"}}>
+          {/* LOGO */}
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:44}}>
+            <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>🎓</div>
+            <div>
+              <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:14,color:"#00f5c3"}}>MIT VISHWAPRAYAG</div>
+              <div style={{fontSize:9.5,color:"#334155",letterSpacing:"1.5px",textTransform:"uppercase"}}>Smart Attendance System</div>
+            </div>
+          </div>
+
+          {/* TABS */}
+          <div style={{display:"flex",gap:0,marginBottom:28,borderBottom:"1px solid rgba(255,255,255,.07)"}}>
+            {[["login","Sign In"],["register","Create Account"]].map(([t,label])=>(
+              <button key={t} type="button" onClick={()=>{setTab(t);setErr("");setSucc("");}} style={{flex:1,background:"transparent",border:"none",padding:"10px 0",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:13.5,fontWeight:700,color:tab===t?"#00f5c3":"#475569",borderBottom:tab===t?"2px solid #00f5c3":"2px solid transparent",transition:"all .2s",marginBottom:-1}}>{label}</button>
+            ))}
+          </div>
+
+          {/* SUCCESS / ERROR BANNERS */}
+          {succ&&(
+            <div style={{background:"rgba(0,245,195,.09)",border:"1px solid rgba(0,245,195,.3)",borderRadius:10,padding:"12px 15px",fontSize:13,color:"#00f5c3",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
+              <span style={{fontSize:16}}>✅</span> {succ}
+            </div>
+          )}
+          {err&&(
+            <div style={{background:"rgba(255,77,109,.09)",border:"1px solid rgba(255,77,109,.3)",borderRadius:10,padding:"12px 15px",fontSize:13,color:"#ff4d6d",marginBottom:18,display:"flex",alignItems:"center",gap:9,animation:shake?"shake .45s ease":undefined}}>
+              <span style={{fontSize:16}}>⚠️</span> {err}
+            </div>
+          )}
+
+          {/* ═══ LOGIN FORM ═══ */}
+          {tab==="login"&&(
+            <>
+              <div style={{marginBottom:6}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:30,letterSpacing:"-1px"}}>Welcome back 👋</div>
+                <div style={{fontSize:14,color:"#475569",marginTop:4}}>Enter your professor credentials to continue.</div>
+              </div>
+
+              <form onSubmit={handleLogin} noValidate style={{marginTop:22,display:"flex",flexDirection:"column",gap:16}}>
+                <div>
+                  <label style={lbl}>Email Address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e=>setEmail(e.target.value)}
+                    placeholder="yourname@mitvishwaprayag.edu"
+                    autoComplete="email"
+                    autoFocus
+                    style={inp}
+                    onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}}
+                    onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,.12)";}}
+                  />
+                </div>
+                <div>
+                  <label style={lbl}>Password</label>
+                  <div style={{position:"relative"}}>
+                    <input
+                      type={showP?"text":"password"}
+                      value={pass}
+                      onChange={e=>setPass(e.target.value)}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      style={{...inp,paddingRight:48}}
+                      onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}}
+                      onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,.12)";}}
+                    />
+                    <button
+                      type="button"
+                      onClick={()=>setShowP(p=>!p)}
+                      style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:17,lineHeight:1,color:"#475569",padding:0}}
+                    >{showP?"🙈":"👁️"}</button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    background:loading?"rgba(0,245,195,.3)":"linear-gradient(135deg,#00f5c3,#38bdf8)",
+                    color:"#000",border:"none",padding:"13px",borderRadius:10,
+                    cursor:loading?"not-allowed":"pointer",fontSize:15,fontWeight:800,
+                    fontFamily:"Syne,sans-serif",letterSpacing:"-.2px",marginTop:4,
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                    transition:"all .2s"
+                  }}
+                >
+                  {loading?(
+                    <>
+                      <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid #000",borderTopColor:"transparent",animation:"spin 1s linear infinite"}}/>
+                      Signing in…
+                    </>
+                  ):"Sign In →"}
+                </button>
+
+                <div style={{textAlign:"center",fontSize:12,color:"#334155"}}>
+                  <button type="button" onClick={()=>{setTab("forgot");setErr("");}} style={{background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:12,textDecoration:"underline"}}>Forgot password?</button>
+                </div>
+              </form>
+
+              {/* DEMO CREDENTIALS PANEL */}
+              <div style={{marginTop:24,padding:"16px",background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)",borderRadius:12}}>
+                <div style={{fontSize:10.5,color:"#334155",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:12,fontWeight:700}}>
+                  🔑 Demo Accounts — Click to fill
+                </div>
+                {profs.slice(0,3).map((p,i)=>(
+                  <div key={p.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderTop:"1px solid rgba(255,255,255,.04)"}}>
+                    <div>
+                      <div style={{fontSize:12.5,fontWeight:700,color:"#94a3b8"}}>
+                        {p.name}
+                        <span style={{color:"#334155",fontWeight:400,marginLeft:6}}>({p.role})</span>
+                      </div>
+                      <div style={{fontSize:11,color:"#334155",marginTop:1,fontFamily:"monospace"}}>
+                        {p.email} · <span style={{color:"#475569"}}>{p.password}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={()=>fillDemo(p)}
+                      style={{background:"rgba(0,245,195,.1)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.25)",borderRadius:8,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0,marginLeft:10,fontFamily:"inherit"}}
+                    >Fill →</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ═══ REGISTER FORM ═══ */}
+          {tab==="register"&&(
+            <>
+              <div style={{marginBottom:6}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:28,letterSpacing:"-1px"}}>Create Account</div>
+                <div style={{fontSize:14,color:"#475569",marginTop:4}}>Register as a professor at MIT Vishwaprayag.</div>
+              </div>
+              <form onSubmit={handleRegister} noValidate style={{marginTop:20,display:"flex",flexDirection:"column",gap:14}}>
+                <div>
+                  <label style={lbl}>Full Name *</label>
+                  <input type="text" value={rName} onChange={e=>setRName(e.target.value)} placeholder="Dr. First Last" style={inp}
+                    onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,.12)";}}/>
+                </div>
+                <div>
+                  <label style={lbl}>Email Address *</label>
+                  <input type="email" value={rEmail} onChange={e=>setREmail(e.target.value)} placeholder="you@mitvishwaprayag.edu" style={inp}
+                    onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,.12)";}}/>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  <div>
+                    <label style={lbl}>Department</label>
+                    <select value={rDept} onChange={e=>setRDept(e.target.value)} style={{...inp,color:"#e2e8f0"}}>
+                      {["Computer Science","Information Technology","Electronics","Mathematics","Physics","Chemistry"].map(d=><option key={d} value={d} style={{background:"#0a0e1a"}}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Role</label>
+                    <select value={rRole} onChange={e=>setRRole(e.target.value)} style={{...inp,color:"#e2e8f0"}}>
+                      {["Professor","Assistant Professor","Associate Professor","HOD","Lab Instructor","Dean"].map(r=><option key={r} value={r} style={{background:"#0a0e1a"}}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  <div>
+                    <label style={lbl}>Password * (min 6)</label>
+                    <input type="password" value={rPass} onChange={e=>setRPass(e.target.value)} placeholder="Choose password" style={inp}
+                      onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,.12)";}}/>
+                  </div>
+                  <div>
+                    <label style={lbl}>Confirm Password *</label>
+                    <input type="password" value={rConf} onChange={e=>setRConf(e.target.value)} placeholder="Repeat password" style={{...inp,borderColor:rConf&&rConf!==rPass?"rgba(255,77,109,.5)":"rgba(255,255,255,.12)"}}
+                      onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}} onBlur={e=>{e.target.style.borderColor=rConf&&rConf!==rPass?"rgba(255,77,109,.5)":"rgba(255,255,255,.12)";}}/>
+                  </div>
+                </div>
+                {rConf&&rConf!==rPass&&<div style={{fontSize:12,color:"#ff4d6d",marginTop:-8}}>⚠ Passwords don't match</div>}
+                <button type="submit" disabled={loading} style={{background:loading?"rgba(0,245,195,.3)":"linear-gradient(135deg,#00f5c3,#38bdf8)",color:"#000",border:"none",padding:"13px",borderRadius:10,cursor:loading?"not-allowed":"pointer",fontSize:15,fontWeight:800,fontFamily:"Syne,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:4,transition:"all .2s"}}>
+                  {loading?<><div style={{width:16,height:16,borderRadius:"50%",border:"2px solid #000",borderTopColor:"transparent",animation:"spin 1s linear infinite"}}/>Creating…</>:"Create Account →"}
+                </button>
+              </form>
+            </>
+          )}
+
+          {/* ═══ FORGOT PASSWORD ═══ */}
+          {tab==="forgot"&&(
+            <>
+              <div style={{marginBottom:22}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:28,letterSpacing:"-1px"}}>Reset Password</div>
+                <div style={{fontSize:14,color:"#475569",marginTop:4}}>We'll send reset instructions to your email.</div>
+              </div>
+              <form onSubmit={e=>{e.preventDefault();setSucc("If that email is registered, a reset link has been sent.");setTab("login");}} noValidate style={{display:"flex",flexDirection:"column",gap:16}}>
+                <div>
+                  <label style={lbl}>Email Address</label>
+                  <input type="email" required placeholder="you@mitvishwaprayag.edu" style={inp}
+                    onFocus={e=>{e.target.style.borderColor="rgba(0,245,195,.5)";}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,.12)";}}/>
+                </div>
+                <button type="submit" style={{background:"linear-gradient(135deg,#00f5c3,#38bdf8)",color:"#000",border:"none",padding:"13px",borderRadius:10,cursor:"pointer",fontSize:15,fontWeight:800,fontFamily:"Syne,sans-serif"}}>Send Reset Link</button>
+                <button type="button" onClick={()=>{setTab("login");setErr("");}} style={{background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:13,textAlign:"center"}}>← Back to Sign In</button>
+              </form>
+            </>
+          )}
+
+          {/* RESET STORAGE LINK */}
+          <div style={{marginTop:24,textAlign:"center",fontSize:11,color:"#1e3a5f"}}>
+            Having trouble? <button type="button" onClick={()=>{LS.clear();window.location.reload();}} style={{background:"none",border:"none",color:"#334155",cursor:"pointer",fontSize:11,textDecoration:"underline"}}>Reset app data</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ──── RIGHT PANEL ──── */}
+      <div style={{flex:"0 0 45%",background:"linear-gradient(160deg,rgba(0,245,195,.06),rgba(56,189,248,.04),rgba(167,139,250,.04))",borderLeft:"1px solid rgba(255,255,255,.05)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 48px",position:"relative",zIndex:1,overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"25%",left:"50%",transform:"translateX(-50%)",width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,245,195,.07) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        <div style={{textAlign:"center",marginBottom:36,position:"relative"}}>
+          <div style={{fontSize:68,marginBottom:14,animation:"logoBounce 3s ease-in-out infinite"}}>🎓</div>
+          <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:22,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",...safePfx,letterSpacing:"-.5px",marginBottom:4}}>MIT VISHWAPRAYAG</div>
+          <div style={{fontSize:11,color:"#334155",letterSpacing:"2px",textTransform:"uppercase"}}>Smart Attendance System</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:310}}>
+          {[
+            {ico:"🔬",l:"AI Face Scanner",d:"Claude Vision liveness detection prevents proxy attendance"},
+            {ico:"🏆",l:"Competition Rankings",d:"15-day leaderboard with gold/silver/bronze podium"},
+            {ico:"📧",l:"Auto Parent Alerts",d:"Gmail alerts sent automatically below 75% attendance"},
+            {ico:"📊",l:"Live Analytics",d:"AI-generated insights from your attendance data"}
+          ].map((f,i)=>(
+            <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:"rgba(255,255,255,.022)",border:"1px solid rgba(255,255,255,.055)",borderRadius:12,padding:"13px 15px"}}>
+              <span style={{fontSize:21,flexShrink:0}}>{f.ico}</span>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,marginBottom:2,color:"#e2e8f0"}}>{f.l}</div>
+                <div style={{fontSize:12,color:"#475569",lineHeight:1.45}}>{f.d}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:32,fontSize:11,color:"#1e3a5f",textAlign:"center"}}>© 2025 MIT Vishwaprayag · All rights reserved</div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   MINI COMPONENTS
+══════════════════════════════════════════ */
+function Av({name,size=34}){
+  const c=AVC[name.charCodeAt(0)%AVC.length];
+  return <div style={{width:size,height:size,borderRadius:"50%",background:`${c}22`,border:`2px solid ${c}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.34,fontWeight:800,color:c,flexShrink:0,userSelect:"none"}}>{ini(name)}</div>;}
+function ACl({name,sub}){
+  const{dark}=useTheme();
+  return <div style={{display:"flex",alignItems:"center",gap:9}}>
+    <Av name={name}/>
+    <div><div style={{fontWeight:600,fontSize:13}}>{name}</div>{sub&&<div style={{fontSize:11,color:dark?"#475569":"#94a3b8"}}>{sub}</div>}</div>
+  </div>;}
+function Prg({p}){
+  return <div style={{display:"flex",alignItems:"center",gap:7}}>
+    <div style={{width:72,height:5,background:"rgba(128,128,128,.2)",borderRadius:10,overflow:"hidden"}}>
+      <div style={{width:`${p}%`,height:"100%",background:pctCol(p),borderRadius:10,transition:"width .4s"}}/>
+    </div>
+    <span style={{fontSize:12,fontWeight:700,color:pctCol(p),minWidth:34}}>{p}%</span>
+  </div>;}
+const BS2={ok:{bg:"rgba(0,245,195,.12)",c:"#00f5c3",b:"rgba(0,245,195,.3)"},warn:{bg:"rgba(245,166,35,.12)",c:"#f5a623",b:"rgba(245,166,35,.3)"},crit:{bg:"rgba(255,77,109,.12)",c:"#ff4d6d",b:"rgba(255,77,109,.3)"}};
+function Bdg({t,c}){const s=BS2[c]||BS2.ok;return <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:s.bg,color:s.c,border:`1px solid ${s.b}`}}>{t}</span>;}
+function TH({ch}){const{dark}=useTheme();return <th style={{padding:"9px 14px",fontSize:11,textTransform:"uppercase",letterSpacing:.8,color:dark?"#334155":"#94a3b8",fontWeight:700,textAlign:"left",background:dark?"#060b14":"#f8fafc",whiteSpace:"nowrap",borderBottom:`1px solid ${dark?"#0d1929":"#e2e8f0"}`}}>{ch}</th>;}
+function TD({ch}){const{dark}=useTheme();return <td style={{padding:"11px 14px",fontSize:13,borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}>{ch}</td>;}
+function Emp({ico,txt}){const{dark}=useTheme();return <div style={{textAlign:"center",padding:"44px 20px",color:dark?"#334155":"#94a3b8"}}><div style={{fontSize:32,marginBottom:8}}>{ico}</div><div style={{fontSize:13}}>{txt}</div></div>;}
+function Crd({title,children}){
+  const{dark}=useTheme();
+  return <div style={{background:dark?"#080d18":"#fff",border:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,borderRadius:14,overflow:"hidden",marginBottom:16,boxShadow:dark?"none":"0 1px 8px rgba(0,0,0,.06)"}}>
+    {title&&<div style={{padding:"14px 18px",borderBottom:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:14}}>{title}</div>}
+    {children}
+  </div>;}
+function FldI({name,label,ph,type="text",req}){
+  const{dark}=useTheme();
+  const s={background:dark?"#0a0e1a":"#f8fafc",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,borderRadius:8,padding:"9px 13px",color:dark?"#e2e8f0":"#0f172a",fontFamily:"inherit",fontSize:13,outline:"none",width:"100%"};
+  return <div style={{display:"flex",flexDirection:"column",gap:5}}>
+    <label style={{fontSize:11,textTransform:"uppercase",letterSpacing:1,color:dark?"#64748b":"#94a3b8"}}>{label}{req&&<span style={{color:"#ff4d6d"}}> *</span>}</label>
+    <input name={name} type={type} placeholder={ph} required={req} style={s}/>
+  </div>;}
+
+/* ── TOAST ── */
+function Toast({t}){
+  const{dark}=useTheme();
+  if(!t)return null;
+  const m={success:"#00f5c3",error:"#ff4d6d",warn:"#f5a623",info:"#38bdf8"};
+  const c=m[t.type]||m.info;
+  return <div style={{position:"fixed",top:68,right:20,zIndex:9999,padding:"11px 17px",borderRadius:11,fontSize:13,fontWeight:600,display:"flex",alignItems:"center",gap:8,boxShadow:"0 8px 30px rgba(0,0,0,.4)",minWidth:240,background:dark?"#060b14":"#fff",borderLeft:`3px solid ${c}`,border:`1px solid ${c}30`,color:c,animation:"toastIn .3s ease"}}>{t.msg}</div>;}
+/* ── MODAL ── */
+function Mdl({m,onClose}){
+  const{dark}=useTheme();
+  if(!m)return null;
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}} onClick={onClose}>
+    <div style={{background:dark?"#080d18":"#fff",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,borderRadius:16,padding:"26px",width:620,maxWidth:"95vw",maxHeight:"92vh",overflowY:"auto",animation:"scaleIn .22s ease"}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:17}}>{m.title}</span>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#475569",fontSize:20,cursor:"pointer"}}>✕</button>
+      </div>
+      {m.body}
+    </div>
+  </div>;}
+
+/* ── FACE SCANNER ── */
+function FaceScanner({student,subjectId,onClose,onSuccess}){
+  const{dark}=useTheme();
+  const[st,setSt]=useState("idle");
+  const[prog,setProg]=useState(0);
+  const[checks,setChecks]=useState([]);
+  const[res,setRes]=useState(null);
+  const vRef=useRef(null),cRef=useRef(null),sRef=useRef(null);
+  useEffect(()=>{
+    (async()=>{try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:640,height:480}});sRef.current=s;if(vRef.current)vRef.current.srcObject=s;}catch{alert("Camera access denied. Please allow camera permissions.");onClose();}})();
+    return()=>{if(sRef.current)sRef.current.getTracks().forEach(t=>t.stop());};
+  },[]);
+  function capture(){const v=vRef.current,c=cRef.current;if(!v||!c)return null;c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext("2d").drawImage(v,0,0);return c.toDataURL("image/jpeg",.85).split(",")[1];}
+  async function scan(){
+    setSt("scanning");setProg(0);setChecks([]);setRes(null);
+    const done=[];
+    for(let i=0;i<3;i++){
+      await new Promise(r=>setTimeout(r,1000));setProg((i+1)/3*55);setSt("analyzing");
+      const fr=capture();if(!fr){setSt("fail");return;}
+      const r=await apiLiveness(fr);done.push(r);setChecks([...done]);setProg(55+(i+1)/3*40);
+      if(!r.live&&r.confidence>62){setSt("spoof");setRes(r);if(sRef.current)sRef.current.getTracks().forEach(t=>t.stop());return;}}
+    setProg(100);
+    const lc=done.filter(c=>c.live).length,ac=Math.round(done.reduce((a,c)=>a+c.confidence,0)/done.length),sp=done.find(c=>!c.live&&c.confidence>55);
+    if(sp){setSt("spoof");setRes(sp);if(sRef.current)sRef.current.getTracks().forEach(t=>t.stop());}
+    else if(lc>=2){setSt("done");setRes({live:true,confidence:ac,reason:"Live face verified ✓",warning:""});if(sRef.current)sRef.current.getTracks().forEach(t=>t.stop());onSuccess();}
+    else{setSt("fail");setRes({live:false,confidence:ac,reason:"Face unclear. Retry.",warning:"Ensure good lighting and face camera directly."});}}
+  const bg=dark?"#060b14":"#f8fafc",brd=dark?"#1e293b":"#e2e8f0";
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}}>
+    <div style={{background:bg,border:`1px solid ${brd}`,borderRadius:18,padding:"24px",width:520,maxWidth:"96vw",maxHeight:"96vh",overflowY:"auto",animation:"scaleIn .2s ease"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:17,color:"#00f5c3"}}>🔬 Face Liveness Scanner</span>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#475569",fontSize:20,cursor:"pointer"}}>✕</button>
+      </div>
+      {student&&<div style={{fontSize:12,color:"#475569",marginBottom:14}}>Student: <b style={{color:"#00f5c3"}}>{student.name}</b> · {student.roll} · <b style={{color:student.batch==="Batch 1"?"#00f5c3":"#38bdf8"}}>{student.batch}</b></div>}
+      <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:"#000",aspectRatio:"4/3",marginBottom:14}}>
+        <video ref={vRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",display:"block",transform:"scaleX(-1)"}}/>
+        <canvas ref={cRef} style={{display:"none"}}/>
+        {(st==="scanning"||st==="analyzing")&&<div style={{position:"absolute",inset:0,zIndex:10,pointerEvents:"none"}}>
+          <div style={{position:"absolute",left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#00f5c3,transparent)",animation:"scanLine 1.4s linear infinite"}}/>
+          {[[{top:"10px",left:"10px"},{borderTop:"3px solid #00f5c3",borderLeft:"3px solid #00f5c3",borderRadius:"4px 0 0 0"}],
+            [{top:"10px",right:"10px"},{borderTop:"3px solid #00f5c3",borderRight:"3px solid #00f5c3",borderRadius:"0 4px 0 0"}],
+            [{bottom:"10px",left:"10px"},{borderBottom:"3px solid #00f5c3",borderLeft:"3px solid #00f5c3",borderRadius:"0 0 0 4px"}],
+            [{bottom:"10px",right:"10px"},{borderBottom:"3px solid #00f5c3",borderRight:"3px solid #00f5c3",borderRadius:"0 0 4px 0"}]
+          ].map(([pos,b],i)=><div key={i} style={{position:"absolute",width:26,height:26,...pos,...b}}/>)}
+        </div>}
+        {st==="done"&&<div style={{position:"absolute",inset:0,background:"rgba(0,245,195,.12)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,color:"#00f5c3",fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:22}}><span style={{fontSize:52}}>✅</span>VERIFIED</div>}
+        {st==="spoof"&&<div style={{position:"absolute",inset:0,background:"rgba(255,77,109,.15)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,color:"#ff4d6d",fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:20}}><span style={{fontSize:52}}>🚫</span>FRAUD DETECTED</div>}
+        {st==="fail"&&<div style={{position:"absolute",inset:0,background:"rgba(245,166,35,.1)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,color:"#f5a623",fontFamily:"Syne,sans-serif",fontWeight:800}}><span style={{fontSize:44}}>⚠️</span>SCAN FAILED</div>}
+      </div>
+      {(st==="scanning"||st==="analyzing")&&<div style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#475569",marginBottom:4}}><span>{st==="analyzing"?"🧠 AI analyzing frame…":"📷 Capturing…"}</span><span>{Math.round(prog)}%</span></div>
+        <div style={{height:5,background:"rgba(128,128,128,.2)",borderRadius:10,overflow:"hidden"}}><div style={{width:`${prog}%`,height:"100%",background:"linear-gradient(90deg,#00f5c3,#38bdf8)",borderRadius:10,transition:"width .3s"}}/></div>
+      </div>}
+      {checks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>{checks.map((c,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:600,background:c.live?"rgba(0,245,195,.07)":"rgba(255,77,109,.07)",color:c.live?"#00f5c3":"#ff4d6d",border:`1px solid ${c.live?"rgba(0,245,195,.2)":"rgba(255,77,109,.2)"}`}}><span>{c.live?"✅":"🚫"}</span><span>Check {i+1}: {c.live?"Live face detected":c.spoof_type?.replace(/_/g," ")||"Spoof"}</span><span style={{marginLeft:"auto",fontWeight:800}}>{c.confidence}%</span></div>)}</div>}
+      {res&&(st==="done"||st==="spoof"||st==="fail")&&<div style={{padding:"12px 16px",borderRadius:10,marginBottom:12,background:st==="done"?"rgba(0,245,195,.06)":"rgba(255,77,109,.06)",border:`1px solid ${st==="done"?"rgba(0,245,195,.3)":"rgba(255,77,109,.3)"}`,color:st==="done"?"#00f5c3":"#ff4d6d"}}>
+        <div style={{fontWeight:700}}>{res.reason}</div>{res.warning&&<div style={{fontSize:12,marginTop:4,opacity:.8}}>{res.warning}</div>}
+        {st==="spoof"&&<div style={{marginTop:6,fontSize:13,fontWeight:800}}>⛔ Type: {res.spoof_type?.replace(/_/g," ").toUpperCase()}</div>}
+      </div>}
+      <div style={{display:"flex",gap:8}}>
+        {(st==="idle"||st==="fail")&&<button onClick={scan} style={{flex:1,background:"rgba(0,245,195,.1)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.3)",padding:"11px 0",borderRadius:10,cursor:"pointer",fontFamily:"Syne,sans-serif",fontSize:14,fontWeight:800}}>{st==="fail"?"🔄 Retry":"🔬 Start Liveness Scan"}</button>}
+        {st==="done"&&<button onClick={onClose} style={{flex:1,background:"rgba(0,245,195,.1)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.3)",padding:"11px 0",borderRadius:10,cursor:"pointer",fontFamily:"Syne,sans-serif",fontSize:14,fontWeight:800}}>✓ Done — Close</button>}
+        {st==="spoof"&&<button onClick={onClose} style={{flex:1,background:"rgba(255,77,109,.1)",color:"#ff4d6d",border:"1px solid rgba(255,77,109,.3)",padding:"11px 0",borderRadius:10,cursor:"pointer",fontFamily:"Syne,sans-serif",fontSize:14,fontWeight:800}}>Close — Fraud Logged</button>}
+        <button onClick={onClose} style={{background:"transparent",color:"#475569",border:`1px solid ${brd}`,padding:"11px 18px",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
+      </div>
+    </div>
+  </div>;}
+
+/* ── LEADERBOARD ── */
+function Leaderboard({students,log}){
+  const{dark}=useTheme();
+  const[fb,setFb]=useState("All");
+  const[fc,setFc]=useState("All");
+  const[view,setView]=useState("overall"); // "overall"|"byclass"
+  const muted=dark?"#475569":"#94a3b8";
+  const cardBg=dark?"#080d18":"#fff";
+  const brd=dark?"#0d1929":"#e2e8f0";
+  const classes=useMemo(()=>[...new Set(students.map(s=>s.cls))].sort(),[students]);
+
+  // build ranked list
+  const ranked=useMemo(()=>students
+    .filter(s=>(fb==="All"||s.batch===fb)&&(fc==="All"||s.cls===fc))
+    .map(s=>{const d=calc15Days(s.id,log);const ov=calcOverall(s.id,s.subjects,log);return{...s,d15:d,overall:ov,score:d.present*10+d.pct};})
+    .sort((a,b)=>b.score-a.score).map((s,i)=>({...s,rank:i+1}))
+  ,[students,log,fb,fc]);
+
+  // class-wise rankings: each student gets a rank within their class
+  const classRanked=useMemo(()=>{
+    const all=students.map(s=>{const d=calc15Days(s.id,log);const ov=calcOverall(s.id,s.subjects,log);return{...s,d15:d,overall:ov,score:d.present*10+d.pct};});
+    const byClass={};
+    classes.forEach(cls=>{
+      const inClass=all.filter(s=>s.cls===cls).sort((a,b)=>b.score-a.score).map((s,i)=>({...s,classRank:i+1,classTotalStudents:0}));
+      inClass.forEach(s=>s.classTotalStudents=inClass.length);
+      byClass[cls]=inClass;
+    });
+    return byClass;
+  },[students,log,classes]);
+
+  // get last 15 weekdays for calendar strip
+  const last15Dates=useMemo(()=>{
+    const dates=[]; const now=new Date();
+    for(let d=30;d>=0&&dates.length<15;d--){
+      const dt=new Date(now); dt.setDate(now.getDate()-d);
+      if(![0,6].includes(dt.getDay())) dates.push(dt.toISOString().slice(0,10));
+    }
+    return dates;
+  },[]);
+
+  const medals=["🥇","🥈","🥉"];
+  const podClr=["#ffd700","#c0c0c0","#cd7f32"];
+  const podH=["160px","120px","90px"];
+  const podOrder=[1,0,2];
+  const top3=ranked.slice(0,3);
+
+  return <div style={{animation:"fadeUp .3s ease"}}>
+    {/* HEADER */}
+    <div style={{marginBottom:20}}>
+      <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26,display:"flex",alignItems:"center",gap:10}}>
+        🏆 Attendance Competition
+        <span style={{background:"linear-gradient(135deg,#ffd700,#ffb300)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontSize:22}}>Rankings</span>
+      </div>
+      <div style={{fontSize:13,color:muted,marginTop:3}}>Last 15 school days · Class-wise & overall rankings · MIT Vishwaprayag</div>
+    </div>
+
+    {/* STAT CARDS */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+      {[
+        {l:"Competing",v:ranked.length,c:"#00f5c3",ico:"🏆",sub:"total students"},
+        {l:"Top Score",v:ranked[0]?`${ranked[0].score}pts`:"—",c:"#ffd700",ico:"⭐",sub:ranked[0]?.name.split(" ")[0]||"—"},
+        {l:"Perfect 15d",v:ranked.filter(s=>s.d15.pct===100).length,c:"#a78bfa",ico:"✨",sub:"100% attendance"},
+        {l:"Need Attention",v:ranked.filter(s=>s.d15.pct<75).length,c:"#ff4d6d",ico:"⚠️",sub:"below 75% (15d)"},
+      ].map(s=>(
+        <div key={s.l} style={{background:cardBg,border:`1px solid ${brd}`,borderRadius:13,padding:"16px",position:"relative",overflow:"hidden",boxShadow:dark?"none":"0 1px 6px rgba(0,0,0,.05)"}}>
+          <div style={{position:"absolute",inset:0,background:`radial-gradient(circle at 80% 20%,${s.c}14,transparent 65%)`}}/>
+          <div style={{fontSize:22,marginBottom:5}}>{s.ico}</div>
+          <div style={{fontFamily:"Syne,sans-serif",fontSize:24,fontWeight:800,color:s.c,lineHeight:1}}>{s.v}</div>
+          <div style={{fontSize:11,color:muted,marginTop:3}}>{s.l}</div>
+          <div style={{fontSize:10,color:dark?"#1e3a5f":"#cbd5e1",marginTop:1}}>{s.sub}</div>
+          <div style={{position:"absolute",bottom:0,left:0,height:2,width:"100%",background:`linear-gradient(90deg,${s.c},transparent)`}}/>
+        </div>
+      ))}
+    </div>
+
+    {/* FILTERS + VIEW TOGGLE */}
+    <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap",alignItems:"center"}}>
+      <div style={{display:"flex",gap:4,background:dark?"rgba(255,255,255,.04)":"rgba(0,0,0,.04)",borderRadius:10,padding:3,border:`1px solid ${brd}`}}>
+        {["overall","byclass"].map(v=><button key={v} onClick={()=>setView(v)} style={{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit",transition:"all .2s",...(view===v?{background:dark?"#080d18":"#fff",color:"#00f5c3",boxShadow:"0 1px 4px rgba(0,0,0,.15)"}:{background:"transparent",color:muted})}}>
+          {v==="overall"?"🌐 Overall Rankings":"🏫 Class Rankings"}
+        </button>)}
+      </div>
+      <div style={{width:1,height:22,background:dark?"rgba(255,255,255,.08)":"#e2e8f0"}}/>
+      {["All","Batch 1","Batch 2"].map(b=><button key={b} onClick={()=>setFb(b)} style={{padding:"6px 14px",borderRadius:20,border:`1px solid ${fb===b?"#00f5c3":"rgba(128,128,128,.2)"}`,background:fb===b?"rgba(0,245,195,.1)":"transparent",color:fb===b?"#00f5c3":muted,cursor:"pointer",fontSize:12,fontWeight:700,transition:"all .15s"}}>{b}</button>)}
+      <div style={{width:1,height:22,background:dark?"rgba(255,255,255,.08)":"#e2e8f0"}}/>
+      {["All",...classes].map(c=><button key={c} onClick={()=>setFc(c)} style={{padding:"6px 14px",borderRadius:20,border:`1px solid ${fc===c?"#38bdf8":"rgba(128,128,128,.2)"}`,background:fc===c?"rgba(56,189,248,.1)":"transparent",color:fc===c?"#38bdf8":muted,cursor:"pointer",fontSize:12,fontWeight:700,transition:"all .15s"}}>{c}</button>)}
+      <span style={{marginLeft:"auto",fontSize:11,color:muted}}>{ranked.length} students</span>
+    </div>
+
+    {/* ═══ OVERALL VIEW ═══ */}
+    {view==="overall"&&<>
+      {/* PODIUM */}
+      {top3.length>0&&<div style={{background:cardBg,border:`1px solid ${brd}`,borderRadius:16,padding:"22px 20px 0",marginBottom:20,overflow:"hidden",position:"relative",boxShadow:dark?"none":"0 2px 12px rgba(0,0,0,.06)"}}>
+        <div style={{position:"absolute",inset:0,background:dark?"radial-gradient(circle at 50% -10%,rgba(255,215,0,.05),transparent 60%)":"radial-gradient(circle at 50% -10%,rgba(255,215,0,.07),transparent 60%)"}}/>
+        <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:15,textAlign:"center",marginBottom:20,color:"#f59e0b",position:"relative",letterSpacing:".5px"}}>🏆 TOP 3 PODIUM — LAST 15 SCHOOL DAYS</div>
+        <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:12,position:"relative"}}>
+          {podOrder.map(idx=>{
+            const s=top3[idx];if(!s)return <div key={idx} style={{width:155}}/>;
+            const c=podClr[s.rank-1];
+            return <div key={s.id} style={{display:"flex",flexDirection:"column",alignItems:"center",width:162}}>
+              {s.rank===1&&<div style={{fontSize:28,animation:"float 2s ease-in-out infinite",marginBottom:4}}>👑</div>}
+              <Av name={s.name} size={s.rank===1?64:50}/>
+              <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:13,marginTop:7,textAlign:"center",maxWidth:155}}>{s.name}</div>
+              <div style={{fontSize:11,color:muted,marginTop:1}}>{s.roll} · {s.cls}</div>
+              <div style={{fontSize:10,fontWeight:700,color:s.batch==="Batch 1"?"#00f5c3":"#38bdf8",marginTop:2}}>{s.batch}</div>
+              <div style={{fontSize:s.rank===1?28:22,fontWeight:800,color:c,fontFamily:"Syne,sans-serif",marginTop:5,lineHeight:1}}>{s.d15.pct}%</div>
+              <div style={{fontSize:11,color:muted,marginTop:1}}>{s.d15.present}/{s.d15.total} days present</div>
+              <div style={{fontSize:11,fontWeight:700,color:c,marginTop:1}}>{s.score} pts</div>
+              {/* 15-day mini calendar strip */}
+              <div style={{display:"flex",gap:2,marginTop:8,marginBottom:0,flexWrap:"wrap",justifyContent:"center",maxWidth:154}}>
+                {last15Dates.map(dt=>{
+                  const rec=log.filter(r=>r.studentId===s.id&&r.date===dt&&r.present);
+                  const absent=log.filter(r=>r.studentId===s.id&&r.date===dt&&!r.present);
+                  const col=rec.length>0?"#00f5c3":absent.length>0?"#ff4d6d":dark?"#1e293b":"#e2e8f0";
+                  return <div key={dt} title={dt} style={{width:8,height:8,borderRadius:2,background:col,transition:"transform .15s",cursor:"default"}}/>;
+                })}
+              </div>
+              <div style={{fontSize:9,color:dark?"#1e3a5f":"#cbd5e1",marginBottom:0}}>last 15 days ●=present ●=absent</div>
+              <div style={{marginTop:10,width:"100%",height:podH[s.rank-1],background:`linear-gradient(180deg,${c}18,${c}06)`,border:`2px solid ${c}40`,borderBottom:"none",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:0,left:"-100%",width:"60%",height:"100%",background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)",animation:"shine 2.5s ease-in-out infinite"}}/>
+                <span style={{fontFamily:"Syne,sans-serif",fontSize:38,fontWeight:800,color:c,opacity:.18}}>#{s.rank}</span>
+              </div>
+            </div>;})}
+        </div>
+      </div>}
+
+      {/* FULL RANKINGS TABLE */}
+      <div style={{background:cardBg,border:`1px solid ${brd}`,borderRadius:14,overflow:"hidden",boxShadow:dark?"none":"0 1px 8px rgba(0,0,0,.05)"}}>
+        <div style={{padding:"14px 18px",borderBottom:`1px solid ${brd}`,fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span>📊 Full Rankings — Last 15 School Days</span>
+          <span style={{fontSize:11,color:muted}}>Score = (days present × 10) + attendance %</span>
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:860}}>
+            <thead><tr>{["Rank","Student","Batch","Class","15-Day Calendar","Days Present","15-Day %","Overall %","Score","Status"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+            <tbody>{ranked.map(s=>{
+              const bc=s.batch==="Batch 1"?"#00f5c3":"#38bdf8";
+              const rc=s.rank===1?"#ffd700":s.rank===2?"#c0c0c0":s.rank===3?"#cd7f32":muted;
+              const isTop=s.rank<=3;
+              return <tr key={s.id} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`,background:isTop?(dark?"rgba(255,215,0,.022)":"rgba(255,215,0,.04)"):"transparent"}}>
+                <TD ch={<div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:34,height:34,borderRadius:"50%",background:isTop?`${rc}20`:"rgba(128,128,128,.07)",border:`2px solid ${isTop?rc:"rgba(128,128,128,.18)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:13,color:rc,flexShrink:0,animation:s.rank===1?"rankPop .6s ease":undefined}}>
+                    {s.rank<=3?medals[s.rank-1]:s.rank}
+                  </div>
+                </div>}/>
+                <TD ch={<ACl name={s.name} sub={s.roll}/>}/>
+                <TD ch={<span style={{display:"inline-flex",alignItems:"center",gap:4,background:`${bc}12`,border:`1px solid ${bc}30`,borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700,color:bc}}><span style={{width:5,height:5,borderRadius:"50%",background:bc}}/>{s.batch}</span>}/>
+                <TD ch={<span style={{background:"rgba(56,189,248,.1)",color:"#38bdf8",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:600}}>{s.cls}</span>}/>
+                <TD ch={<div style={{display:"flex",gap:2,flexWrap:"nowrap"}}>
+                  {last15Dates.map(dt=>{
+                    const rec=log.filter(r=>r.studentId===s.id&&r.date===dt&&r.present).length>0;
+                    const abs=log.filter(r=>r.studentId===s.id&&r.date===dt&&!r.present).length>0;
+                    return <div key={dt} title={dt} style={{width:7,height:14,borderRadius:2,background:rec?"#00f5c3":abs?"#ff4d6d":dark?"#1e293b":"#e2e8f0",flexShrink:0}}/>;
+                  })}
+                </div>}/>
+                <TD ch={<span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:18,color:pctCol(s.d15.pct)}}>{s.d15.present}</span>}/>
+                <TD ch={<div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:64,height:5,background:"rgba(128,128,128,.15)",borderRadius:10,overflow:"hidden"}}><div style={{width:`${s.d15.pct}%`,height:"100%",background:pctCol(s.d15.pct),borderRadius:10}}/></div><span style={{fontSize:12,fontWeight:800,color:pctCol(s.d15.pct),minWidth:34}}>{s.d15.pct}%</span></div>}/>
+                <TD ch={<Prg p={s.overall}/>}/>
+                <TD ch={<span style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:isTop?rc:"#00f5c3",fontSize:14}}>{s.score}</span>}/>
+                <TD ch={<div style={{display:"flex",gap:4,alignItems:"center"}}><Bdg {...pctBdg(s.d15.pct)}/>{s.rank===1&&<span title="Leader">👑</span>}{s.d15.pct===100&&<span title="Perfect">⭐</span>}</div>}/>
+              </tr>;})}
+            </tbody>
+          </table>
+          {ranked.length===0&&<Emp ico="🔍" txt="No students match current filters."/>}
+        </div>
+      </div>
+    </>}
+
+    {/* ═══ CLASS-WISE RANKINGS VIEW ═══ */}
+    {view==="byclass"&&<div>
+      <div style={{background:dark?"rgba(0,245,195,.04)":"rgba(8,145,178,.04)",border:`1px solid ${dark?"rgba(0,245,195,.15)":"rgba(8,145,178,.15)"}`,borderRadius:11,padding:"11px 16px",marginBottom:18,fontSize:13,color:dark?"#00f5c3":"#0891b2",display:"flex",alignItems:"center",gap:9}}>
+        <span style={{fontSize:16}}>ℹ️</span>
+        <span>Class rankings show each student's rank <b>within their own class</b> based on last 15 days. Rank 1 = top student in that class.</span>
+      </div>
+      {classes.map(cls=>{
+        const clsStudents=classRanked[cls]?.filter(s=>(fb==="All"||s.batch===fb));
+        if(!clsStudents||!clsStudents.length) return null;
+        const clsTop=clsStudents[0];
+        return <div key={cls} style={{background:cardBg,border:`1px solid ${brd}`,borderRadius:14,overflow:"hidden",marginBottom:16,boxShadow:dark?"none":"0 1px 8px rgba(0,0,0,.05)"}}>
+          {/* CLASS HEADER */}
+          <div style={{padding:"12px 18px",borderBottom:`1px solid ${brd}`,background:dark?"linear-gradient(135deg,rgba(56,189,248,.06),rgba(0,245,195,.03))":"linear-gradient(135deg,rgba(56,189,248,.06),rgba(8,145,178,.04))",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:38,height:38,borderRadius:10,background:"linear-gradient(135deg,#38bdf8,#00f5c3)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:14,color:"#000"}}>{cls}</div>
+              <div>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:15}}>Class {cls}</div>
+                <div style={{fontSize:11,color:muted}}>{clsStudents.length} students · Ranked by last 15 days</div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              {clsTop&&<div style={{textAlign:"right"}}>
+                <div style={{fontSize:10,color:muted}}>Class Topper</div>
+                <div style={{fontWeight:700,fontSize:13,color:"#ffd700"}}>👑 {clsTop.name.split(" ")[0]}</div>
+                <div style={{fontSize:11,color:"#ffd700"}}>{clsTop.d15.pct}%</div>
+              </div>}
+            </div>
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
+              <thead><tr>{["Class Rank","Student","Batch","15-Day Calendar","Days Present / Total","15-Day %","Overall %","Score"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+              <tbody>{clsStudents.map(s=>{
+                const rc=s.classRank===1?"#ffd700":s.classRank===2?"#c0c0c0":s.classRank===3?"#cd7f32":muted;
+                const isTop=s.classRank<=3;
+                const bc=s.batch==="Batch 1"?"#00f5c3":"#38bdf8";
+                return <tr key={s.id} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`,background:isTop?(dark?"rgba(255,215,0,.02)":"rgba(255,215,0,.04)"):"transparent"}}>
+                  <TD ch={<div style={{display:"flex",alignItems:"center",gap:7}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:isTop?`${rc}20`:"rgba(128,128,128,.07)",border:`2px solid ${isTop?rc:"rgba(128,128,128,.18)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:12,color:rc,flexShrink:0}}>
+                      {s.classRank<=3?medals[s.classRank-1]:s.classRank}
+                    </div>
+                    <span style={{fontSize:10,color:muted}}>/ {s.classTotalStudents}</span>
+                  </div>}/>
+                  <TD ch={<ACl name={s.name} sub={s.roll}/>}/>
+                  <TD ch={<span style={{display:"inline-flex",alignItems:"center",gap:4,background:`${bc}12`,border:`1px solid ${bc}30`,borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700,color:bc}}><span style={{width:5,height:5,borderRadius:"50%",background:bc}}/>{s.batch}</span>}/>
+                  <TD ch={<div style={{display:"flex",gap:2,flexWrap:"nowrap"}}>
+                    {last15Dates.map(dt=>{
+                      const rec=log.filter(r=>r.studentId===s.id&&r.date===dt&&r.present).length>0;
+                      const abs=log.filter(r=>r.studentId===s.id&&r.date===dt&&!r.present).length>0;
+                      return <div key={dt} title={dt} style={{width:8,height:16,borderRadius:2,background:rec?"#00f5c3":abs?"#ff4d6d":dark?"#1e293b":"#e2e8f0",flexShrink:0}}/>;
+                    })}
+                  </div>}/>
+                  <TD ch={<div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:17,color:pctCol(s.d15.pct)}}>{s.d15.present}</span>
+                    <span style={{color:muted,fontSize:12}}>/ {s.d15.total}</span>
+                  </div>}/>
+                  <TD ch={<div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:60,height:5,background:"rgba(128,128,128,.15)",borderRadius:10,overflow:"hidden"}}><div style={{width:`${s.d15.pct}%`,height:"100%",background:pctCol(s.d15.pct),borderRadius:10}}/></div><span style={{fontSize:12,fontWeight:800,color:pctCol(s.d15.pct),minWidth:34}}>{s.d15.pct}%</span></div>}/>
+                  <TD ch={<Prg p={s.overall}/>}/>
+                  <TD ch={<span style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:isTop?rc:"#00f5c3",fontSize:13}}>{s.score}</span>}/>
+                </tr>;})}
+              </tbody>
+            </table>
+          </div>
+        </div>;
+      })}
+    </div>}
+
+    {/* LEGEND */}
+    <div style={{display:"flex",gap:14,fontSize:11,color:muted,flexWrap:"wrap",marginTop:8,padding:"10px 0",borderTop:`1px solid ${brd}`}}>
+      <span>🥇 Gold — Rank 1</span><span>🥈 Silver — Rank 2</span><span>🥉 Bronze — Rank 3</span>
+      <span>⭐ Perfect 15-day attendance</span><span>👑 Class/Overall leader</span>
+      <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:"#00f5c3",display:"inline-block"}}/>Present</span>
+      <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:"#ff4d6d",display:"inline-block"}}/>Absent</span>
+      <span style={{marginLeft:"auto"}}>Score = (days present × 10) + attendance%</span>
+    </div>
+  </div>;}
+
+/* ══════════════════════════════════════════
+   MAIN DASHBOARD APP
+══════════════════════════════════════════ */
+function DashApp({sessionProf}){
+  const{dark,toggle}=useTheme();
+  const[page,setPage]=useState("dashboard");
+  const[students,setStudents]=useState(()=>LS.get("sa_students",DEF_STUDENTS));
+  const[log,setLog]=useState(()=>LS.get("sa_log",seedLog()));
+  const[alerts2,setAlerts2]=useState(()=>LS.get("sa_alerts",{}));
+  const[markSub,setMarkSub]=useState("");
+  const[markSt,setMarkSt]=useState({});
+  const[toast,setToast]=useState(null);
+  const[modal,setModal]=useState(null);
+  const[insight,setInsight]=useState("");
+  const[insLoad,setInsLoad]=useState(false);
+  const[search,setSearch]=useState("");
+  const[batchF,setBatchF]=useState("All");
+  const[branchF,setBranchF]=useState("All");
+  const[aiLoad,setAiLoad]=useState({});
+  const[scanner,setScanner]=useState(null);
+
+  useEffect(()=>LS.set("sa_students",students),[students]);
+  useEffect(()=>LS.set("sa_log",log),[log]);
+  useEffect(()=>LS.set("sa_alerts",alerts2),[alerts2]);
+
+  const showToast=useCallback((msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),4000);},[]);
+  const low=students.filter(s=>calcOverall(s.id,s.subjects,log)<75);
+  const todayLog=log.filter(r=>r.date===todayStr());
+  const presentToday=new Set(todayLog.filter(r=>r.present).map(r=>r.studentId)).size;
+
+  const bg=dark?"#05080f":"#f1f5f9",sideBg=dark?"#060b14":"#fff",sideBrd=dark?"#0d1929":"#e2e8f0";
+  const cardBg=dark?"#080d18":"#fff",muted=dark?"#475569":"#94a3b8",txt=dark?"#e2e8f0":"#0f172a";
+  const inp2={background:dark?"#080d18":"#f8fafc",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,borderRadius:9,padding:"8px 13px",color:txt,fontSize:13,outline:"none"};
+  const btnA={background:"rgba(0,245,195,.1)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.25)",padding:"8px 16px",borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:700};
+  const btnG={background:"transparent",color:muted,border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,padding:"8px 13px",borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:600};
+  const btnS={background:"transparent",color:muted,border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,padding:"5px 9px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600};
+
+  function saveAtt(){
+    if(!markSub){showToast("Select a subject!","error");return;}
+    const ents=Object.entries(markSt);if(!ents.length){showToast("Mark some attendance!","error");return;}
+    const dt=todayStr();
+    const nl=log.filter(r=>!(r.date===dt&&r.subjectId===parseInt(markSub)));
+    ents.forEach(([sid,present])=>nl.push({date:dt,studentId:parseInt(sid),subjectId:parseInt(markSub),present,method:"manual"}));
+    setLog(nl);let an=0;const na={...alerts2};
+    ents.forEach(([sid])=>{const st=students.find(s=>s.id==sid);if(calcOverall(parseInt(sid),st?.subjects||[],nl)<75&&!alerts2[sid]){na[sid]={status:"pending",date:dt};an++;}});
+    if(an){setAlerts2(na);showToast(`⚠️ ${an} alert(s) queued!`,"warn");}
+    showToast(`✅ Saved for ${ents.length} students!`,"success");setMarkSt({});}
+
+  async function sendAlertF(studentId){
+    const st=students.find(s=>s.id===studentId);const pct=calcOverall(st.id,st.subjects,log);
+    const bd=st.subjects.map(sid=>{const sub=SUBJECTS.find(s=>s.id===sid);const att=calcSub(st.id,sid,log);return{name:sub?.name||"—",code:sub?.code||"—",...att};});
+    setAiLoad(p=>({...p,[studentId]:true}));
+    const r=await apiGmail(st,pct,bd);
+    setAiLoad(p=>({...p,[studentId]:false}));
+    setAlerts2(p=>({...p,[studentId]:{status:"sent",date:todayStr(),sim:r.sim}}));
+    showToast(r.sim?`📧 Alert drafted for ${st.parentEmail}`:`📧 Sent to ${st.parentEmail}!`,"success");}
+  async function sendAll(){const p=low.filter(s=>!alerts2[s.id]||alerts2[s.id].status!=="sent");if(!p.length){showToast("No pending!","info");return;}for(const s of p)await sendAlertF(s.id);}
+
+  function addStu(e){
+    e.preventDefault();const fd=new FormData(e.target);
+    const name=fd.get("name"),roll=fd.get("roll"),cls=fd.get("cls"),email=fd.get("email"),batch=fd.get("batch"),branch=fd.get("branch");
+    if(!name||!roll||!email){showToast("Fill required fields!","error");return;}
+    if(!batch){showToast("Select a batch!","error");return;}
+    if(!branch){showToast("Select a branch!","error");return;}
+    const branchSubIds=SUBJECTS.filter(s=>s.branch===branch).map(s=>s.id);
+    const extraSubs=branchSubIds.filter(id=>fd.get(`sub_${id}`));
+    const subs=extraSubs.length>0?extraSubs:branchSubIds;
+    const newId=Math.max(...students.map(s=>s.id),0)+1;
+    setStudents(p=>[...p,{id:newId,name,roll,cls,branch,batch,parentEmail:email,subjects:subs,faceRegistered:false}]);
+    setModal(null);showToast(`✅ "${name}" added to ${batch} — ${BRANCHES.find(b=>b.id===branch)?.label||branch}!`,"success");}
+
+  function viewStu(s){
+    const p=calcOverall(s.id,s.subjects,log);const bc=s.batch==="Batch 1"?"#00f5c3":"#38bdf8";const d15=calc15Days(s.id,log);
+    setModal({title:`📋 ${s.name} — Detail`,body:(
+      <div>
+        <div style={{display:"flex",gap:14,alignItems:"center",marginBottom:18}}>
+          <Av name={s.name} size={52}/>
+          <div>
+            <div style={{fontSize:18,fontWeight:700}}>{s.name}</div>
+            <div style={{fontSize:12,color:muted,marginTop:2}}>{s.roll} · {s.cls} · {s.parentEmail}</div>
+            <div style={{display:"flex",gap:8,marginTop:7,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,background:`${bc}12`,border:`1px solid ${bc}35`,borderRadius:20,padding:"3px 11px",fontSize:12,fontWeight:700,color:bc}}><span style={{width:6,height:6,borderRadius:"50%",background:bc}}/>{s.batch}</span>
+              <span>Overall: <b style={{color:pctCol(p)}}>{p}%</b></span><Bdg {...pctBdg(p)}/>
+            </div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+          {[{l:"Present (15d)",v:d15.present,c:"#00f5c3"},{l:"Total Days (15d)",v:d15.total,c:"#38bdf8"},{l:"15-Day %",v:`${d15.pct}%`,c:pctCol(d15.pct)}].map(x=>(
+            <div key={x.l} style={{background:dark?"#0a0e1a":"#f8fafc",borderRadius:10,padding:"12px",textAlign:"center",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`}}>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:22,fontWeight:800,color:x.c}}>{x.v}</div>
+              <div style={{fontSize:11,color:muted,marginTop:2}}>{x.l}</div>
+            </div>))}
+        </div>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead><tr>{["Subject","Code","Type","Credits","Held","Attended","Attendance","Status"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+          <tbody>{s.subjects.map(sid=>{const sub=SUBJECTS.find(x=>x.id===sid);const att=calcSub(s.id,sid,log);return <tr key={sid} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}>
+            <TD ch={sub?.name}/><TD ch={<span style={{background:"rgba(56,189,248,.1)",color:"#38bdf8",borderRadius:20,padding:"2px 8px",fontSize:11,fontFamily:"monospace"}}>{sub?.code}</span>}/>
+            <TD ch={<span style={{background:`${TC[sub?.type]||"#fff"}15`,color:TC[sub?.type]||"#fff",borderRadius:6,padding:"2px 7px",fontSize:11,fontWeight:700}}>{sub?.type}</span>}/>
+            <TD ch={<b style={{color:"#00f5c3"}}>{sub?.total}</b>}/><TD ch={att.held}/><TD ch={att.attended}/>
+            <TD ch={<Prg p={att.pct}/>}/><TD ch={<Bdg {...pctBdg(att.pct)}/>}/>
+          </tr>;})}
+          </tbody>
+        </table>
+      </div>)});}
+
+  const filtStu=students.filter(s=>{
+    const q=search.toLowerCase();
+    const mq=s.name.toLowerCase().includes(q)||s.roll.toLowerCase().includes(q);
+    const mb=batchF==="All"||s.batch===batchF;
+    const mbr=branchF==="All"||s.branch===branchF;
+    return mq&&mb&&mbr;});
+
+  const NAVS=[
+    {id:"dashboard",ico:"⬡",label:"Dashboard"},
+    {id:"leaderboard",ico:"🏆",label:"Competition"},
+    {id:"scanner",ico:"◈",label:"Face Scanner"},
+    {id:"mark",ico:"✦",label:"Mark Attendance"},
+    {id:"students",ico:"▣",label:"Students"},
+    {id:"subjects",ico:"◉",label:"Subjects"},
+    {id:"reports",ico:"▤",label:"Reports"},
+    {id:"alerts",ico:"◎",label:"Parent Alerts"},
+  ];
+
+  return <div style={{display:"flex",minHeight:"100vh",background:bg,color:txt,fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{position:"fixed",inset:0,zIndex:0,background:dark?"radial-gradient(ellipse 70% 50% at 0 0,rgba(0,245,195,.05),transparent 55%),radial-gradient(ellipse 60% 40% at 100% 100%,rgba(56,189,248,.05),transparent 55%)":"none",pointerEvents:"none"}}/>
+    <Toast t={toast}/>
+    <Mdl m={modal} onClose={()=>setModal(null)}/>
+    {scanner&&<FaceScanner student={scanner.student} subjectId={scanner.subjectId} onClose={()=>setScanner(null)}
+      onSuccess={()=>{
+        const dt=todayStr();
+        setLog(prev=>{const n=prev.filter(r=>!(r.date===dt&&r.studentId===scanner.student.id&&r.subjectId===scanner.subjectId));return[...n,{date:dt,studentId:scanner.student.id,subjectId:scanner.subjectId,present:true,method:"face_scan"}];});
+        showToast(`✅ ${scanner.student.name} marked PRESENT via Face!`,"success");setScanner(null);}}/>}
+
+    {/* SIDEBAR */}
+    <aside style={{width:242,background:sideBg,borderRight:`1px solid ${sideBrd}`,display:"flex",flexDirection:"column",position:"sticky",top:0,height:"100vh",zIndex:50,flexShrink:0,transition:"background .3s"}}>
+      <div style={{padding:"16px 14px 13px",borderBottom:`1px solid ${sideBrd}`,background:dark?"linear-gradient(160deg,rgba(0,245,195,.04),rgba(56,189,248,.02))":"linear-gradient(160deg,rgba(0,245,195,.06),rgba(56,189,248,.04))"}}>
+        <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:9}}>
+          <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🎓</div>
+          <div>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:13,color:dark?"#00f5c3":"#0891b2",letterSpacing:"-.2px",lineHeight:1.2}}>MIT VISHWAPRAYAG</div>
+            <div style={{fontSize:9,color:muted,letterSpacing:"1.5px",textTransform:"uppercase",marginTop:1}}>University</div>
+          </div>
+        </div>
+        <div style={{background:dark?"rgba(0,245,195,.07)":"rgba(8,145,178,.07)",border:`1px solid ${dark?"rgba(0,245,195,.18)":"rgba(8,145,178,.18)"}`,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
+          <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:10,color:dark?"#00f5c3":"#0891b2",letterSpacing:"1.2px",textTransform:"uppercase",lineHeight:1.4}}>SMART ATTENDANCE SYSTEM</div>
+        </div>
+      </div>
+      <nav style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
+        {NAVS.map(n=><button key={n.id} onClick={()=>setPage(n.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,border:"none",cursor:"pointer",fontSize:13,fontWeight:500,textAlign:"left",transition:"all .15s",fontFamily:"inherit",...(page===n.id?{background:"rgba(0,245,195,.1)",color:"#00f5c3",borderLeft:"2px solid #00f5c3"}:{background:"transparent",color:muted})}}>
+          <span style={{fontSize:14,width:17,textAlign:"center"}}>{n.ico}</span>{n.label}
+          {n.id==="alerts"&&low.length>0&&<span style={{marginLeft:"auto",background:"#ff4d6d",color:"#fff",borderRadius:20,padding:"1px 6px",fontSize:10,fontWeight:700}}>{low.length}</span>}
+          {n.id==="leaderboard"&&<span style={{marginLeft:"auto",background:"linear-gradient(135deg,#ffd700,#ffb300)",color:"#000",borderRadius:20,padding:"1px 6px",fontSize:9,fontWeight:700}}>HOT</span>}
+          {n.id==="scanner"&&<span style={{marginLeft:"auto",background:"#00f5c3",color:"#000",borderRadius:20,padding:"1px 6px",fontSize:9,fontWeight:700}}>AI</span>}
+          {n.id==="students"&&<span style={{marginLeft:"auto",background:dark?"rgba(56,189,248,.15)":"rgba(8,145,178,.1)",color:"#38bdf8",borderRadius:20,padding:"1px 6px",fontSize:10,fontWeight:700}}>{students.length}</span>}
+        </button>)}
+      </nav>
+      <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${sideBrd}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:dark?"rgba(255,255,255,.03)":"rgba(0,0,0,.03)",border:`1px solid ${sideBrd}`,borderRadius:9,padding:"8px 12px",marginBottom:8,cursor:"pointer"}} onClick={toggle}>
+          <span style={{fontSize:12,fontWeight:600,color:muted,userSelect:"none"}}>{dark?"🌙 Dark Mode":"☀️ Light Mode"}</span>
+          <div style={{width:40,height:21,borderRadius:11,background:dark?"rgba(0,245,195,.15)":"rgba(8,145,178,.15)",border:`1px solid ${dark?"rgba(0,245,195,.35)":"rgba(8,145,178,.35)"}`,position:"relative",transition:"all .3s"}}>
+            <div style={{position:"absolute",top:2,left:dark?21:2,width:15,height:15,borderRadius:"50%",background:dark?"#00f5c3":"#0891b2",transition:"left .3s",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}/>
+          </div>
+        </div>
+        {sessionProf&&<div style={{background:dark?"rgba(255,255,255,.03)":"rgba(0,0,0,.03)",border:`1px solid ${sideBrd}`,borderRadius:9,padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#000",flexShrink:0}}>{sessionProf.avatar}</div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sessionProf.name}</div>
+            <div style={{fontSize:10,color:muted}}>{sessionProf.role}</div>
+          </div>
+        </div>}
+        <div style={{marginTop:8,background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.2)",borderRadius:7,padding:"6px 11px",fontSize:11,color:"#ff4d6d",display:"flex",gap:7,alignItems:"center"}}>⚠ {low.length} below 75%</div>
+      </div>
+    </aside>
+
+    {/* MAIN */}
+    <main style={{flex:1,padding:"26px 30px",position:"relative",zIndex:1,overflowY:"auto",minHeight:"100vh"}}>
+
+      {/* DASHBOARD */}
+      {page==="dashboard"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{background:dark?"linear-gradient(135deg,rgba(0,245,195,.07),rgba(56,189,248,.04))":"linear-gradient(135deg,rgba(0,245,195,.07),rgba(56,189,248,.05))",border:`1px solid ${dark?"rgba(0,245,195,.14)":"rgba(8,145,178,.14)"}`,borderRadius:16,padding:"18px 24px",marginBottom:22,display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:50,height:50,borderRadius:13,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🎓</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:20,color:dark?"#00f5c3":"#0891b2",letterSpacing:"-.3px"}}>MIT VISHWAPRAYAG</div>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:600,fontSize:12,letterSpacing:"1.8px",textTransform:"uppercase",marginTop:2}}>Smart Attendance System</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:12,color:muted}}>{new Date().toLocaleDateString("en-IN",{weekday:"long"})}</div>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:17}}>{new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"long",year:"numeric"})}</div>
+            {sessionProf&&<div style={{fontSize:11,color:"#00f5c3",marginTop:3}}>👋 Welcome, {sessionProf.name.split(" ")[0]}!</div>}
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:20}}>
+          {[{l:"Students",v:students.length,ico:"▣",c:"#00f5c3"},{l:"Present Today",v:presentToday,ico:"✦",c:"#38bdf8"},{l:"Below 75%",v:low.length,ico:"⚠",c:"#ff4d6d"},{l:"Courses",v:SUBJECTS.length,ico:"◉",c:"#a78bfa"},{l:"Total Credits",v:SUBJECTS.reduce((a,s)=>a+s.total,0),ico:"★",c:"#f59e0b"}].map(s=>(
+            <div key={s.l} style={{background:cardBg,border:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,borderRadius:13,padding:"16px",position:"relative",overflow:"hidden",boxShadow:dark?"none":"0 1px 8px rgba(0,0,0,.05)"}}>
+              <div style={{position:"absolute",inset:0,background:`radial-gradient(circle at 70% 20%,${s.c}15,transparent 65%)`}}/>
+              <div style={{fontSize:20,marginBottom:6,opacity:.7,color:s.c}}>{s.ico}</div>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:28,fontWeight:800,lineHeight:1}}>{s.v}</div>
+              <div style={{fontSize:11,color:muted,marginTop:4}}>{s.l}</div>
+              <div style={{position:"absolute",bottom:0,left:0,height:2,width:"100%",background:`linear-gradient(90deg,${s.c},transparent)`}}/>
+            </div>))}
+        </div>
+        <div style={{background:cardBg,border:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,borderRadius:13,padding:"16px 20px",marginBottom:20}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <span style={{fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:13,color:"#00f5c3"}}>✦ AI Analytics Insight</span>
+            <button onClick={async()=>{setInsLoad(true);const t=await apiInsight(students,log);setInsight(t);setInsLoad(false);}} disabled={insLoad} style={{...btnA,opacity:insLoad?.7:1}}>{insLoad?"🧠 Analyzing…":"Generate Insights"}</button>
+          </div>
+          {insight?<pre style={{fontSize:13,color:muted,lineHeight:1.9,whiteSpace:"pre-wrap"}}>{insight}</pre>:<div style={{fontSize:12,color:dark?"#334155":"#94a3b8",fontStyle:"italic"}}>Click to generate AI-powered attendance analysis</div>}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <Crd title="🔴 Low Attendance Students">
+            {!low.length?<Emp ico="🎉" txt="All students above 75%!"/>:
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Student","Roll","Attendance","Status"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+              <tbody>{low.map(s=>{const p=calcOverall(s.id,s.subjects,log);return <tr key={s.id} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}><TD ch={<ACl name={s.name}/>}/><TD ch={s.roll}/><TD ch={<Prg p={p}/>}/><TD ch={<Bdg {...pctBdg(p)}/>}/></tr>;})}</tbody>
+            </table>}
+          </Crd>
+          <Crd title="📅 Today's Summary">
+            {!todayLog.length?<Emp ico="📋" txt="No attendance marked today yet."/>:
+            (()=>{const m={};todayLog.forEach(r=>{if(!m[r.subjectId])m[r.subjectId]={p:0,a:0};r.present?m[r.subjectId].p++:m[r.subjectId].a++;});
+            return <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Subject","Present","Absent","%"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+              <tbody>{Object.entries(m).map(([sid,v])=>{const sub=SUBJECTS.find(s=>s.id==sid);const t=v.p+v.a;const p=Math.round(v.p/t*100);return <tr key={sid} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}><TD ch={sub?.name}/><TD ch={<span style={{color:"#00f5c3"}}>{v.p}</span>}/><TD ch={<span style={{color:"#ff4d6d"}}>{v.a}</span>}/><TD ch={<span style={{color:pctCol(p),fontWeight:700}}>{p}%</span>}/></tr>;})}
+              </tbody>
+            </table>;})()}
+          </Crd>
+        </div>
+      </div>}
+
+      {/* LEADERBOARD */}
+      {page==="leaderboard"&&<Leaderboard students={students} log={log}/>}
+
+      {/* FACE SCANNER */}
+      {page==="scanner"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{marginBottom:20}}><div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26}}>Face Scanner</div><div style={{fontSize:13,color:muted,marginTop:3}}>AI liveness detection — prevents photo/paper fraud</div></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1.6fr",gap:20}}>
+          <div style={{background:cardBg,border:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,borderRadius:14,padding:"22px"}}>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:15,color:"#00f5c3",marginBottom:18}}>🔬 How It Works</div>
+            {[["1","Select student & subject"],["2","Camera opens — face it"],["3","Claude Vision captures 3 frames"],["4","AI analyzes real vs spoof"],["5","Live → attendance marked ✅"],["6","Photo/screen → FRAUD 🚫"]].map(([n,t])=>(
+              <div key={n} style={{display:"flex",gap:10,marginBottom:12,fontSize:13,color:muted,alignItems:"flex-start"}}>
+                <span style={{width:22,height:22,borderRadius:"50%",background:"rgba(0,245,195,.1)",border:"1px solid rgba(0,245,195,.3)",color:"#00f5c3",fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{n}</span>{t}
+              </div>))}
+            <div style={{marginTop:16,padding:"14px",background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.2)",borderRadius:10,fontSize:12,color:"#ff4d6d",lineHeight:1.8}}>⛔ <b>Detects:</b> Printed photos · Phone screens · Paper/ID cards · Any 2D face image</div>
+          </div>
+          <div style={{background:cardBg,border:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,borderRadius:14,padding:"22px"}}>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:15,marginBottom:16}}>Launch Face Scan</div>
+            <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:18}}>
+              <div style={{display:"flex",flexDirection:"column",gap:5}}><label style={{fontSize:11,textTransform:"uppercase",letterSpacing:1,color:muted}}>Student</label><select id="sc-st" style={{...inp2,width:"100%"}}><option value="">— Select Student —</option>{students.map(s=><option key={s.id} value={s.id}>{s.name} ({s.roll}) · {s.batch}</option>)}</select></div>
+              <div style={{display:"flex",flexDirection:"column",gap:5}}><label style={{fontSize:11,textTransform:"uppercase",letterSpacing:1,color:muted}}>Subject</label><select id="sc-sub" style={{...inp2,width:"100%"}}><option value="">— Select Subject —</option>{SUBJECTS.map(s=><option key={s.id} value={s.id}>{s.code} — {s.name}</option>)}</select></div>
+              <button style={{...btnA,padding:"12px",fontSize:14,fontFamily:"Syne,sans-serif",fontWeight:800}} onClick={()=>{
+                const stId=parseInt(document.getElementById("sc-st").value);const subId=parseInt(document.getElementById("sc-sub").value);
+                if(!stId||!subId){showToast("Select both!","error");return;}
+                const st=students.find(s=>s.id===stId);if(!st.subjects.includes(subId)){showToast("Student not enrolled!","error");return;}
+                setScanner({student:st,subjectId:subId});}}>🔬 Open Face Scanner</button>
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:muted,marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Recent Face Scans Today</div>
+            {log.filter(r=>r.date===todayStr()&&r.method==="face_scan").length===0?<Emp ico="🔬" txt="No face scans today."/>:
+            log.filter(r=>r.date===todayStr()&&r.method==="face_scan").map((r,i)=>{
+              const st=students.find(s=>s.id===r.studentId);const sub=SUBJECTS.find(s=>s.id===r.subjectId);
+              return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:dark?"#060b14":"#f8fafc",border:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,borderRadius:10,marginBottom:8}}>
+                <Av name={st?.name||"?"} size={32}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{st?.name}</div><div style={{fontSize:11,color:muted}}>{sub?.name}</div></div>
+                <span style={{background:"rgba(0,245,195,.1)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.25)",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}>✅ Verified</span>
+              </div>;})}
+          </div>
+        </div>
+      </div>}
+
+      {/* MARK ATTENDANCE */}
+      {page==="mark"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{marginBottom:20}}><div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26}}>Mark Attendance</div><div style={{fontSize:13,color:muted,marginTop:3}}>Select subject then mark students</div></div>
+        <div style={{display:"flex",gap:10,marginBottom:18,alignItems:"center",flexWrap:"wrap"}}>
+          <select style={inp2} value={markSub} onChange={e=>{setMarkSub(e.target.value);setMarkSt({});}}><option value="">— Select Subject —</option>{BRANCHES.map(b=>{const bSubs=SUBJECTS.filter(s=>s.branch===b.id);if(!bSubs.length)return null;return(<optgroup key={b.id} label={`── ${b.label} ──`}>{bSubs.map(s=><option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}</optgroup>);})}</select>
+          {markSub&&<>
+            <button style={btnG} onClick={()=>{const en=students.filter(s=>s.subjects.includes(parseInt(markSub)));const a={};en.forEach(s=>a[s.id]=true);setMarkSt(a);}}>✓ All Present</button>
+            <button style={btnG} onClick={()=>{const en=students.filter(s=>s.subjects.includes(parseInt(markSub)));const a={};en.forEach(s=>a[s.id]=false);setMarkSt(a);}}>✗ All Absent</button>
+            <button style={btnA} onClick={saveAtt}>💾 Save</button>
+          </>}
+        </div>
+        {!markSub?<Emp ico="📚" txt="Select a subject to begin."/>:
+        (()=>{const en=students.filter(s=>s.subjects.includes(parseInt(markSub)));if(!en.length)return <Emp ico="👤" txt="No students enrolled."/>;
+        return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+          {en.map(st=>{const cur=markSt[st.id];const p=calcOverall(st.id,st.subjects,log);const bc=st.batch==="Batch 1"?"#00f5c3":"#38bdf8";
+          return <div key={st.id} style={{background:cardBg,border:`1px solid ${cur===true?"#00f5c3":cur===false?"#ff4d6d":dark?"#0d1929":"#e2e8f0"}`,borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10,transition:"all .2s",...(cur===true?{background:dark?"rgba(0,245,195,.03)":"rgba(0,245,195,.05)"}:cur===false?{background:dark?"rgba(255,77,109,.03)":"rgba(255,77,109,.05)"}:{})}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <Av name={st.name}/>
+              <div><div style={{fontWeight:700,fontSize:13}}>{st.name}</div><div style={{fontSize:11,color:muted}}>{st.roll} · {st.cls}</div>
+                <div style={{display:"flex",gap:5,marginTop:2}}>
+                  <span style={{fontSize:10,fontWeight:700,color:bc,background:`${bc}12`,borderRadius:20,padding:"1px 7px"}}>{st.batch}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:pctCol(p)}}>{p}%</span>
+                </div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              <button style={{flex:1,padding:"6px 0",borderRadius:7,border:"1px solid transparent",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all .15s",...(cur===true?{background:"#00f5c3",color:"#000"}:{background:"rgba(0,245,195,.08)",color:"#00f5c3",borderColor:"rgba(0,245,195,.2)"})}} onClick={()=>setMarkSt(p=>({...p,[st.id]:true}))}>✓ Present</button>
+              <button style={{flex:1,padding:"6px 0",borderRadius:7,border:"1px solid transparent",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all .15s",...(cur===false?{background:"#ff4d6d",color:"#fff"}:{background:"rgba(255,77,109,.08)",color:"#ff4d6d",borderColor:"rgba(255,77,109,.2)"})}} onClick={()=>setMarkSt(p=>({...p,[st.id]:false}))}>✗ Absent</button>
+            </div>
+            <button style={{background:"rgba(0,245,195,.06)",border:"1px solid rgba(0,245,195,.2)",color:"#00f5c3",borderRadius:7,padding:"5px 0",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setScanner({student:st,subjectId:parseInt(markSub)})}>🔬 Face Scan</button>
+          </div>;})}
+        </div>;}
+        )()}
+      </div>}
+
+      {/* STUDENTS */}
+      {page==="students"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{marginBottom:18}}><div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26}}>Students</div><div style={{fontSize:13,color:muted,marginTop:3}}>All {students.length} students across 8 branches — MIT Vishwaprayag</div></div>
+
+        {/* BRANCH BANNER CARDS */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+          {[{l:"All",v:students.length,c:"#94a3b8"},...BRANCHES.map(b=>({l:b.label,v:students.filter(s=>s.branch===b.id).length,c:b.color,k:b.id}))].slice(0,8).map((b,i)=>(
+            <div key={b.l} onClick={()=>setBranchF(b.k||"All")} style={{background:cardBg,border:`1px solid ${(branchF===(b.k||"All"))?b.c+"55":dark?"#0d1929":"#e2e8f0"}`,borderRadius:12,padding:"13px 16px",cursor:"pointer",transition:"all .2s",position:"relative",overflow:"hidden",...((branchF===(b.k||"All"))?{background:`${b.c}08`}:{})}}>
+              <div style={{position:"absolute",bottom:0,left:0,height:2,width:"100%",background:branchF===(b.k||"All")?`linear-gradient(90deg,${b.c},transparent)`:"transparent"}}/>
+              <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:22,color:branchF===(b.k||"All")?b.c:muted,lineHeight:1}}>{b.v}</div>
+              <div style={{fontSize:10,color:branchF===(b.k||"All")?b.c:dark?"#334155":"#94a3b8",textTransform:"uppercase",letterSpacing:.8,marginTop:3}}>{b.l}</div>
+            </div>))}
+        </div>
+
+        {/* TOOLBAR */}
+        <div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
+          <input style={{...inp2,width:200}} placeholder="🔍 Search name / roll…" value={search} onChange={e=>setSearch(e.target.value)}/>
+          <select style={{...inp2,minWidth:140}} value={branchF} onChange={e=>setBranchF(e.target.value)}>
+            <option value="All">All Branches</option>
+            {BRANCHES.map(b=><option key={b.id} value={b.id}>{b.label}</option>)}
+          </select>
+          <select style={{...inp2,minWidth:120}} value={batchF} onChange={e=>setBatchF(e.target.value)}>
+            <option value="All">All Batches</option><option value="Batch 1">Batch 1</option><option value="Batch 2">Batch 2</option>
+          </select>
+          <button style={btnA} onClick={()=>setModal({title:"➕ Add New Student",body:(()=>{
+            const[selBranch,setSelBranch]=React.useState("");
+            const branchSubjectsForForm=selBranch?SUBJECTS.filter(s=>s.branch===selBranch):[];
+            return(
+            <form onSubmit={addStu} style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <FldI name="name" label="Full Name" ph="e.g. Riya Desai" req/>
+                <FldI name="roll" label="Roll No." ph="e.g. CS009" req/>
+                <FldI name="cls" label="Class / Section" ph="e.g. CSE-A"/>
+                <FldI name="email" label="Parent Email" type="email" ph="parent@gmail.com" req/>
+              </div>
+              {/* BRANCH SELECT */}
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <label style={{fontSize:11,textTransform:"uppercase",letterSpacing:1,color:muted}}>Branch <span style={{color:"#ff4d6d"}}>*</span></label>
+                <select name="branch" required onChange={e=>setSelBranch(e.target.value)} style={{background:dark?"#0a0e1a":"#f8fafc",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,borderRadius:8,padding:"10px 14px",color:txt,fontSize:13,outline:"none",width:"100%"}}>
+                  <option value="">— Select Branch —</option>
+                  {BRANCHES.map(b=><option key={b.id} value={b.id}>{b.label} — {b.full}</option>)}
+                </select>
+              </div>
+              {/* BATCH SELECT */}
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <label style={{fontSize:11,textTransform:"uppercase",letterSpacing:1,color:muted}}>Batch <span style={{color:"#ff4d6d"}}>*</span></label>
+                <select name="batch" required style={{background:dark?"#0a0e1a":"#f8fafc",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,borderRadius:8,padding:"10px 14px",color:txt,fontSize:13,outline:"none",width:"100%"}}>
+                  <option value="">— Select Batch —</option>
+                  <option value="Batch 1">Batch 1 — Morning · 8am–12pm</option>
+                  <option value="Batch 2">Batch 2 — Afternoon · 1pm–5pm</option>
+                </select>
+              </div>
+              {/* SUBJECTS for selected branch */}
+              {selBranch&&branchSubjectsForForm.length>0&&<div>
+                <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:1,color:muted,marginBottom:8}}>Subjects ({BRANCHES.find(b=>b.id===selBranch)?.label}) — check to enroll</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {branchSubjectsForForm.map(s=><label key={s.id} style={{display:"flex",alignItems:"center",gap:6,background:dark?"#0a0e1a":"#f8fafc",border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`,borderRadius:8,padding:"7px 11px",cursor:"pointer",fontSize:12}}>
+                    <input type="checkbox" name={`sub_${s.id}`} defaultChecked style={{accentColor:"#00f5c3"}}/>
+                    <span style={{background:`${TC[s.type]||"#fff"}15`,color:TC[s.type]||"#fff",borderRadius:5,padding:"1px 6px",fontSize:11,fontWeight:700}}>{s.type}</span>{s.code}
+                  </label>)}
+                </div>
+              </div>}
+              {!selBranch&&<div style={{fontSize:12,color:muted,fontStyle:"italic",padding:"8px 12px",background:dark?"rgba(255,255,255,.02)":"rgba(0,0,0,.03)",borderRadius:8,border:`1px solid ${dark?"#1e293b":"#e2e8f0"}`}}>← Select a branch first to see its subjects</div>}
+              <button type="submit" style={{...btnA,width:"100%",padding:"12px",fontSize:14}}>✅ Add Student</button>
+            </form>);})()})}>➕ Add Student</button>
+        </div>
+
+        {/* BRANCH TABS */}
+        <div style={{display:"flex",gap:0,marginBottom:12,borderBottom:`1px solid ${dark?"#0d1929":"#e2e8f0"}`,overflowX:"auto",alignItems:"center"}}>
+          {[{id:"All",label:"All",color:"#94a3b8"},...BRANCHES].map(b=>{
+            const cnt=b.id==="All"?students.length:students.filter(s=>s.branch===b.id).length;
+            const active=branchF===b.id;
+            return <button key={b.id} onClick={()=>setBranchF(b.id)} style={{background:"transparent",border:"none",color:active?txt:muted,cursor:"pointer",padding:"8px 12px",fontSize:12,fontWeight:active?700:500,borderBottom:`2px solid ${active?b.color:"transparent"}`,transition:"all .15s",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
+              {b.id!=="All"&&<span style={{width:7,height:7,borderRadius:"50%",background:b.color,display:"inline-block",flexShrink:0}}/>}
+              {b.label}
+              <span style={{background:active?`${b.color}22`:dark?"rgba(255,255,255,.06)":"rgba(0,0,0,.06)",color:active?b.color:muted,borderRadius:20,padding:"1px 6px",fontSize:10}}>{cnt}</span>
+            </button>;
+          })}
+          <div style={{flex:1,minWidth:8}}/>
+          <span style={{fontSize:11,color:muted,padding:"0 8px",whiteSpace:"nowrap",flexShrink:0}}>Showing {filtStu.length} of {students.length}</span>
+        </div>
+
+        <Crd>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:1000}}>
+              <thead><tr>{["Student","Roll","Branch","Batch","Class","Parent Email","Subjects","Attendance","Status","Actions"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+              <tbody>{filtStu.map(s=>{
+                const p=calcOverall(s.id,s.subjects,log);
+                const bc=s.batch==="Batch 1"?"#00f5c3":"#38bdf8";
+                const brInfo=BRANCHES.find(b=>b.id===s.branch);
+                const brC=brInfo?.color||"#94a3b8";
+                return <tr key={s.id} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}>
+                  <TD ch={<ACl name={s.name} sub={s.parentEmail}/>}/>
+                  <TD ch={<span style={{fontFamily:"monospace",fontSize:12,fontWeight:600}}>{s.roll}</span>}/>
+                  <TD ch={<span style={{display:"inline-flex",alignItems:"center",gap:5,background:`${brC}12`,border:`1px solid ${brC}30`,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,color:brC,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:brC,flexShrink:0}}/>{brInfo?.label||s.branch||"—"}</span>}/>
+                  <TD ch={<span style={{display:"inline-flex",alignItems:"center",gap:4,background:`${bc}12`,border:`1px solid ${bc}30`,borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700,color:bc}}><span style={{width:5,height:5,borderRadius:"50%",background:bc}}/>{s.batch||"—"}</span>}/>
+                  <TD ch={<span style={{background:"rgba(56,189,248,.1)",color:"#38bdf8",border:"1px solid rgba(56,189,248,.25)",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:600}}>{s.cls}</span>}/>
+                  <TD ch={<span style={{fontSize:11,color:muted}}>{s.parentEmail}</span>}/>
+                  <TD ch={<div><div style={{display:"flex",flexWrap:"wrap",gap:2,maxWidth:160}}>{s.subjects.slice(0,4).map(sid=>{const sub=SUBJECTS.find(x=>x.id===sid);return sub?<span key={sid} style={{background:`${brC}12`,color:brC,border:`1px solid ${brC}25`,borderRadius:20,padding:"2px 6px",fontSize:9,fontWeight:700}}>{sub.code}</span>:null;})}{s.subjects.length>4&&<span style={{fontSize:9,color:muted}}>+{s.subjects.length-4}</span>}</div><div style={{fontSize:10,color:muted,marginTop:2}}>{s.subjects.length} courses · {s.subjects.reduce((a,sid)=>{const sub=SUBJECTS.find(x=>x.id===sid);return a+(sub?.total||0);},0)} cr</div></div>}/>
+                  <TD ch={<Prg p={p}/>}/><TD ch={<Bdg {...pctBdg(p)}/>}/>
+                  <TD ch={<div style={{display:"flex",gap:5}}>
+                    <button style={btnS} onClick={()=>viewStu(s)}>View</button>
+                    <button style={{...btnS,color:"#ff4d6d",borderColor:"rgba(255,77,109,.3)"}} onClick={()=>{setStudents(p=>p.filter(x=>x.id!==s.id));showToast("Removed.","info");}}>✕</button>
+                    <button style={{...btnS,color:"#00f5c3",borderColor:"rgba(0,245,195,.3)"}} onClick={()=>setScanner({student:s,subjectId:SUBJECTS[0].id})}>🔬</button>
+                  </div>}/>
+                </tr>;})}
+              </tbody>
+            </table>
+            {filtStu.length===0&&<Emp ico="🔍" txt="No students found. Try changing filter."/>}
+          </div>
+        </Crd>
+      </div>}
+
+      {/* SUBJECTS */}
+      {page==="subjects"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{marginBottom:18}}><div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26}}>Course Subjects</div><div style={{fontSize:13,color:muted,marginTop:3}}>{SUBJECTS.length} subjects across 8 branches — MIT Vishwaprayag</div></div>
+
+        {/* BRANCH SUMMARY CARDS */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+          {BRANCHES.map(b=>{const subs=SUBJECTS.filter(s=>s.branch===b.id);const enrolCount=new Set(students.filter(s=>s.branch===b.id).map(s=>s.id)).size;return(
+            <div key={b.id} style={{background:cardBg,border:`1px solid ${b.color}25`,borderRadius:12,padding:"14px 16px",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,background:`radial-gradient(circle at 80% 20%,${b.color}10,transparent 65%)`}}/>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,position:"relative"}}>
+                <span style={{background:`${b.color}15`,color:b.color,borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:800}}>{b.label}</span>
+              </div>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:22,fontWeight:800,color:b.color,lineHeight:1,position:"relative"}}>{subs.length}</div>
+              <div style={{fontSize:10,color:muted,marginTop:2,position:"relative"}}>subjects · {enrolCount} students</div>
+              <div style={{position:"absolute",bottom:0,left:0,height:2,width:"100%",background:`linear-gradient(90deg,${b.color},transparent)`}}/>
+            </div>);})}
+        </div>
+
+        {/* SUBJECTS GROUPED BY BRANCH */}
+        {BRANCHES.map(b=>{
+          const subs=SUBJECTS.filter(s=>s.branch===b.id);
+          const totalL=subs.reduce((a,s)=>a+s.L,0),totalT=subs.reduce((a,s)=>a+s.T,0),totalP=subs.reduce((a,s)=>a+s.P,0),totalCr=subs.reduce((a,s)=>a+s.total,0);
+          return <div key={b.id} style={{marginBottom:20}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <span style={{display:"inline-flex",alignItems:"center",gap:6,background:`${b.color}12`,border:`1px solid ${b.color}30`,borderRadius:20,padding:"5px 14px",fontSize:13,fontWeight:800,color:b.color}}>
+                <span style={{width:8,height:8,borderRadius:"50%",background:b.color}}/>{b.label}
+              </span>
+              <span style={{fontSize:13,color:muted}}>{b.full}</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:muted}}>{subs.length} subjects · {totalCr} credits</span>
+            </div>
+            <Crd>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",minWidth:650}}>
+                  <thead><tr>{["#","Code","Type","Course Title","L","T","P","Credits","Enrolled"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+                  <tbody>{subs.map((s,i)=>{
+                    const en=students.filter(st=>st.subjects.includes(s.id)).length;
+                    const tc=TC[s.type]||b.color;
+                    return <tr key={s.id} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}>
+                      <TD ch={<span style={{color:muted,fontSize:12}}>{i+1}</span>}/>
+                      <TD ch={<span style={{background:`${b.color}12`,color:b.color,borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"monospace",border:`1px solid ${b.color}25`}}>{s.code}</span>}/>
+                      <TD ch={<span style={{background:`${tc}15`,color:tc,borderRadius:6,padding:"2px 7px",fontSize:11,fontWeight:700}}>{s.type}</span>}/>
+                      <TD ch={<span style={{fontWeight:600,fontSize:13}}>{s.name}</span>}/>
+                      <TD ch={<b style={{color:"#38bdf8"}}>{s.L}</b>}/><TD ch={<b style={{color:"#a78bfa"}}>{s.T}</b>}/><TD ch={<b style={{color:"#f59e0b"}}>{s.P}</b>}/>
+                      <TD ch={<b style={{color:b.color,fontFamily:"Syne,sans-serif",fontSize:16}}>{s.total}</b>}/>
+                      <TD ch={<div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:50,height:4,background:"rgba(128,128,128,.15)",borderRadius:10,overflow:"hidden"}}><div style={{width:`${Math.min(100,(en/Math.max(students.length,1))*100)}%`,height:"100%",background:b.color,borderRadius:10}}/></div><span style={{fontSize:12,fontWeight:700,color:b.color}}>{en}</span></div>}/>
+                    </tr>;})}
+                  </tbody>
+                  <tfoot><tr style={{borderTop:`1px solid ${dark?"#1e293b":"#e2e8f0"}`}}>
+                    <td colSpan={4} style={{padding:"9px 14px",fontSize:12,color:muted,fontStyle:"italic"}}>Subtotal</td>
+                    <td style={{padding:"9px 14px",fontWeight:800,color:"#38bdf8"}}>{totalL}</td>
+                    <td style={{padding:"9px 14px",fontWeight:800,color:"#a78bfa"}}>{totalT}</td>
+                    <td style={{padding:"9px 14px",fontWeight:800,color:"#f59e0b"}}>{totalP}</td>
+                    <td style={{padding:"9px 14px",fontWeight:800,color:b.color,fontFamily:"Syne,sans-serif",fontSize:15}}>{totalCr}</td>
+                    <td style={{padding:"9px 14px"}}/>
+                  </tr></tfoot>
+                </table>
+              </div>
+            </Crd>
+          </div>;})}
+      </div>}
+
+      {/* REPORTS */}
+      {page==="reports"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{marginBottom:14}}><div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26}}>Attendance Reports</div><div style={{fontSize:13,color:muted,marginTop:3}}>All branches · sorted by lowest attendance first</div></div>
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+          <select style={{...inp2,minWidth:150}} onChange={e=>setBranchF(e.target.value)} value={branchF}>
+            <option value="All">All Branches</option>{BRANCHES.map(b=><option key={b.id} value={b.id}>{b.label}</option>)}
+          </select>
+          <select style={{...inp2,minWidth:120}} value={batchF} onChange={e=>setBatchF(e.target.value)}>
+            <option value="All">All Batches</option><option value="Batch 1">Batch 1</option><option value="Batch 2">Batch 2</option>
+          </select>
+          <span style={{fontSize:12,color:muted,marginLeft:4}}>Showing {students.filter(s=>(branchF==="All"||s.branch===branchF)&&(batchF==="All"||s.batch===batchF)).flatMap(s=>s.subjects).length} records</span>
+        </div>
+        <Crd>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
+              <thead><tr>{["Student","Branch","Batch","Subject","Code","Type","Held","Attended","Attendance","Method","Status"].map(h=><TH key={h} ch={h}/>)}</tr></thead>
+              <tbody>{students
+                .filter(s=>(branchF==="All"||s.branch===branchF)&&(batchF==="All"||s.batch===batchF))
+                .flatMap(st=>st.subjects.map(sid=>{
+                  const sub=SUBJECTS.find(s=>s.id===sid);const att=calcSub(st.id,sid,log);
+                  const fN=log.filter(r=>r.studentId===st.id&&r.subjectId===sid&&r.method==="face_scan").length;
+                  return{st,sub,att,fN};}))
+                .sort((a,b)=>a.att.pct-b.att.pct)
+                .map(({st,sub,att,fN},i)=>{
+                  const bc=st.batch==="Batch 1"?"#00f5c3":"#38bdf8";
+                  const brInfo=BRANCHES.find(b=>b.id===st.branch);const brC=brInfo?.color||"#94a3b8";
+                  return <tr key={i} style={{borderTop:`1px solid ${dark?"#0a1120":"#f1f5f9"}`}}>
+                    <TD ch={<ACl name={st.name} sub={st.roll}/>}/>
+                    <TD ch={<span style={{display:"inline-flex",alignItems:"center",gap:4,background:`${brC}12`,border:`1px solid ${brC}25`,borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700,color:brC,whiteSpace:"nowrap"}}><span style={{width:5,height:5,borderRadius:"50%",background:brC}}/>{brInfo?.label||"—"}</span>}/>
+                    <TD ch={<span style={{display:"inline-flex",alignItems:"center",gap:4,background:`${bc}10`,border:`1px solid ${bc}30`,borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700,color:bc}}><span style={{width:4,height:4,borderRadius:"50%",background:bc}}/>{st.batch}</span>}/>
+                    <TD ch={sub?.name}/><TD ch={<span style={{background:"rgba(56,189,248,.1)",color:"#38bdf8",borderRadius:20,padding:"2px 8px",fontSize:10,fontFamily:"monospace"}}>{sub?.code}</span>}/>
+                    <TD ch={<span style={{background:`${TC[sub?.type]||"#fff"}15`,color:TC[sub?.type]||"#fff",borderRadius:5,padding:"2px 6px",fontSize:11,fontWeight:700}}>{sub?.type}</span>}/>
+                    <TD ch={att.held}/><TD ch={att.attended}/><TD ch={<Prg p={att.pct}/>}/>
+                    <TD ch={fN>0?<span style={{background:"rgba(0,245,195,.1)",color:"#00f5c3",border:"1px solid rgba(0,245,195,.2)",borderRadius:20,padding:"2px 8px",fontSize:11}}>🔬 {fN}</span>:<span style={{background:"rgba(167,139,250,.08)",color:"#a78bfa",borderRadius:20,padding:"2px 8px",fontSize:11}}>Manual</span>}/>
+                    <TD ch={<Bdg {...pctBdg(att.pct)}/>}/>
+                  </tr>;})
+              }</tbody>
+            </table>
+          </div>
+        </Crd>
+      </div>}
+
+      {/* ALERTS */}
+      {page==="alerts"&&<div style={{animation:"fadeUp .3s ease"}}>
+        <div style={{marginBottom:18}}><div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:26}}>Parent Alerts</div><div style={{fontSize:13,color:muted,marginTop:3}}>Gmail-powered alerts for students below 75%</div></div>
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}><button style={{...btnA,background:"rgba(255,77,109,.1)",color:"#ff4d6d",border:"1px solid rgba(255,77,109,.3)"}} onClick={sendAll}>📧 Send All Pending</button></div>
+        {!low.length?<Emp ico="✅" txt="All students above 75% — no alerts needed!"/>:
+        low.map(s=>{const p=calcOverall(s.id,s.subjects,log);const ai=alerts2[s.id];const ld=aiLoad[s.id];const bc=s.batch==="Batch 1"?"#00f5c3":"#38bdf8";
+        return <div key={s.id} style={{background:cardBg,border:"1px solid rgba(255,77,109,.12)",borderRadius:12,padding:"14px 18px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14}}>
+          <div style={{display:"flex",gap:12,flex:1}}>
+            <Av name={s.name} size={44}/>
+            <div>
+              <div style={{fontWeight:700,fontSize:14}}>{s.name} <span style={{color:muted,fontSize:12,fontWeight:400}}>{s.roll} · {s.cls}</span>
+                <span style={{marginLeft:8,display:"inline-flex",alignItems:"center",gap:4,background:`${bc}10`,border:`1px solid ${bc}30`,borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700,color:bc}}><span style={{width:5,height:5,borderRadius:"50%",background:bc}}/>{s.batch}</span>
+                {(()=>{const brInfo=BRANCHES.find(b=>b.id===s.branch);const brC=brInfo?.color||"#94a3b8";return brInfo?<span style={{marginLeft:4,display:"inline-flex",alignItems:"center",gap:4,background:`${brC}10`,border:`1px solid ${brC}25`,borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700,color:brC}}><span style={{width:5,height:5,borderRadius:"50%",background:brC}}/>{brInfo.label}</span>:null;})()}
+              </div>
+              <div style={{fontSize:12,color:muted,marginTop:3}}>Overall: <b style={{color:pctCol(p)}}>{p}%</b> · To: <b>{s.parentEmail}</b></div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
+                {s.subjects.map(sid=>{const sub=SUBJECTS.find(x=>x.id===sid);const att=calcSub(s.id,sid,log);return att.pct<75?<span key={sid} style={{background:"rgba(255,77,109,.08)",color:"#ff4d6d",border:"1px solid rgba(255,77,109,.2)",borderRadius:20,padding:"2px 8px",fontSize:11}}>{sub?.code}: {att.pct}%</span>:null;})}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
+            {ai?.status==="sent"
+              ?<div style={{color:"#00f5c3",fontSize:12,fontWeight:700,textAlign:"right"}}>✓ {ai.sim?"Drafted":"Sent"}<br/><span style={{fontSize:11,color:muted}}>{ai.date}</span></div>
+              :<button style={{background:"rgba(255,77,109,.1)",border:"1px solid rgba(255,77,109,.3)",color:"#ff4d6d",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}} onClick={()=>sendAlertF(s.id)} disabled={ld}>{ld?"Sending…":"📧 Send Alert"}</button>}
+          </div>
+        </div>;})}
+        <div style={{display:"flex",gap:10,alignItems:"center",background:"rgba(0,245,195,.03)",border:"1px solid rgba(0,245,195,.1)",borderRadius:9,padding:"11px 15px",fontSize:12,color:muted,marginTop:14}}>
+          🔗 Gmail MCP active — connect Gmail in Claude.ai settings for live email delivery.
+        </div>
+      </div>}
+
+    </main>
+  </div>;
+}
+
+/* ══════════════════════════════════════════
+   ROOT — opens directly to dashboard
+══════════════════════════════════════════ */
+function Root(){
+  const[dark,setDark]=useState(()=>LS.get("sa_dark",true));
+  useEffect(()=>{document.body.className=dark?"dark":"light";},[dark]);
+  useEffect(()=>LS.set("sa_dark",dark),[dark]);
+
+  const bg=dark?"#05080f":"#f1f5f9",brd=dark?"#1e293b":"#e2e8f0",txt=dark?"#e2e8f0":"#0f172a";
+
+  return(
+    <ThemeCtx.Provider value={{dark,toggle:()=>setDark(d=>!d)}}>
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100vh",background:bg,color:txt}}>
+
+      {/* ══ UNIVERSITY HEADING BANNER ══ */}
+      <div style={{background:dark?"linear-gradient(135deg,#020812,#060e1c,#020812)":"linear-gradient(135deg,#f0fdf9,#e0f2fe,#f0fdf9)",borderBottom:`1px solid ${dark?"rgba(0,245,195,.15)":"rgba(8,145,178,.18)"}`,padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"center",gap:16,flexShrink:0,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,backgroundImage:dark?"linear-gradient(90deg,rgba(0,245,195,.03) 1px,transparent 1px),linear-gradient(rgba(0,245,195,.03) 1px,transparent 1px)":"linear-gradient(90deg,rgba(8,145,178,.04) 1px,transparent 1px),linear-gradient(rgba(8,145,178,.04) 1px,transparent 1px)",backgroundSize:"28px 28px",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",left:"50%",top:"50%",transform:"translate(-50%,-50%)",width:"60%",height:"200%",background:dark?"radial-gradient(ellipse,rgba(0,245,195,.04),transparent 60%)":"radial-gradient(ellipse,rgba(8,145,178,.05),transparent 60%)",pointerEvents:"none"}}/>
+        <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#00f5c3,#38bdf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,boxShadow:dark?"0 0 20px rgba(0,245,195,.25)":"0 0 16px rgba(8,145,178,.2)",position:"relative"}}>🎓</div>
+        <div style={{textAlign:"center",position:"relative"}}>
+          <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"clamp(13px,2vw,20px)",letterSpacing:"2.5px",textTransform:"uppercase",background:dark?"linear-gradient(135deg,#00f5c3,#38bdf8)":"linear-gradient(135deg,#0891b2,#0e7490)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.15}}>MIT VISHWAPRAYAG</div>
+          <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:"clamp(9px,1.2vw,13px)",letterSpacing:"4px",textTransform:"uppercase",color:dark?"rgba(0,245,195,.55)":"rgba(8,145,178,.6)",marginTop:1}}>SMART ATTENDANCE SYSTEM</div>
+        </div>
+        {/* DARK / LIGHT TOGGLE */}
+        <div style={{position:"absolute",right:16,top:"50%",transform:"translateY(-50%)"}}>
+          <div onClick={()=>setDark(d=>!d)} title={dark?"Switch to Light Mode":"Switch to Dark Mode"}
+            style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"7px 14px",borderRadius:22,background:dark?"rgba(0,245,195,.09)":"rgba(8,145,178,.09)",border:`1.5px solid ${dark?"rgba(0,245,195,.35)":"rgba(8,145,178,.35)"}`,transition:"all .25s",userSelect:"none",boxShadow:dark?"0 0 12px rgba(0,245,195,.1)":"0 0 12px rgba(8,145,178,.1)"}}>
+            <span style={{fontSize:15,lineHeight:1}}>{dark?"🌙":"☀️"}</span>
+            <div style={{width:38,height:20,borderRadius:11,background:dark?"rgba(0,245,195,.18)":"rgba(8,145,178,.18)",border:`1px solid ${dark?"rgba(0,245,195,.4)":"rgba(8,145,178,.4)"}`,position:"relative",transition:"all .3s",flexShrink:0}}>
+              <div style={{position:"absolute",top:2,left:dark?20:2,width:14,height:14,borderRadius:"50%",background:dark?"#00f5c3":"#0891b2",transition:"left .3s",boxShadow:"0 1px 5px rgba(0,0,0,.35)"}}/>
+            </div>
+            <span style={{fontSize:11,fontWeight:700,color:dark?"#00f5c3":"#0891b2",letterSpacing:".3px"}}>{dark?"Dark":"Light"}</span>
+          </div>
+        </div>
+      </div>
+
+      <DashApp sessionProf={null}/>
+    </div>
+    </ThemeCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
