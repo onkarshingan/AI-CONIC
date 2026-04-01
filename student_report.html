@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Report – AttendAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="page-dashboard">
+
+  <nav class="navbar">
+    <div class="nav-brand"><span class="brand-icon">⬡</span><span class="brand-text">AttendAI</span></div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/register">Register</a></li>
+      <li><a href="/attendance">Attendance</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/settings">Settings</a></li>
+    </ul>
+  </nav>
+
+  <main class="page-main">
+    <div class="page-header">
+      <a href="/settings" class="btn btn-ghost small" style="margin-bottom:1rem">← Back to Settings</a>
+      <h1>Student <span class="accent-text">Report</span></h1>
+      <p id="studentSubtitle">Loading…</p>
+    </div>
+
+    <!-- KPI row -->
+    <div class="kpi-grid" id="kpiRow" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
+
+    <!-- Radar / per-course chart -->
+    <div class="charts-grid" style="margin-top:1.5rem">
+      <div class="chart-card">
+        <h2>Course-wise Attendance %</h2>
+        <canvas id="studentBarChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>Overall Split</h2>
+        <canvas id="studentDonut"></canvas>
+      </div>
+    </div>
+
+    <!-- Per-course tables -->
+    <div id="courseTables" style="margin-top:1.5rem;display:flex;flex-direction:column;gap:1.25rem"></div>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+  const studentId = window.location.pathname.split("/").pop();
+
+  window.addEventListener("DOMContentLoaded", () => loadReport());
+
+  async function loadReport() {
+    const data = await apiGet(`/api/student_report/${studentId}`);
+    if (!data || data.error) {
+      document.getElementById("studentSubtitle").textContent = "Student not found.";
+      return;
+    }
+
+    const { student, courses } = data;
+    document.title = `${student.Name} – AttendAI`;
+    document.getElementById("studentSubtitle").textContent =
+      `#${student.Student_ID}  ·  ${student.Parent_Email}  ·  ${student.Courses}`;
+
+    // Totals
+    let totalP = 0, totalA = 0;
+    Object.values(courses).forEach(c => { totalP += c.present; totalA += c.absent; });
+    const totalPct = totalP + totalA ? Math.round(totalP/(totalP+totalA)*100) : 0;
+
+    // KPI cards
+    document.getElementById("kpiRow").innerHTML = `
+      <div class="kpi-card" style="--kpi-accent:#00e5ff">
+        <div class="kpi-icon">🎓</div>
+        <div class="kpi-value">${student.Name}</div>
+        <div class="kpi-label">Student Name</div>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:#00ff94">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-value">${totalP}</div>
+        <div class="kpi-label">Total Present</div>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:#ff4d6d">
+        <div class="kpi-icon">❌</div>
+        <div class="kpi-value">${totalA}</div>
+        <div class="kpi-label">Total Absent</div>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:${totalPct>=75?"#00ff94":totalPct>=50?"#ffb703":"#ff4d6d"}">
+        <div class="kpi-icon">📊</div>
+        <div class="kpi-value">${totalPct}%</div>
+        <div class="kpi-label">Overall Attendance</div>
+      </div>
+    `;
+
+    // Bar chart
+    const labels = Object.keys(courses);
+    const values = labels.map(c => courses[c].percentage);
+    new Chart(document.getElementById("studentBarChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Attendance %",
+          data : values,
+          backgroundColor: values.map(v => v >= 75 ? "#00ff94" : v >= 50 ? "#ffb703" : "#ff4d6d"),
+          borderRadius: 8, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero:true, max:100,
+               ticks:{ color:"#9ba3b0" }, grid:{ color:"rgba(255,255,255,0.05)" } },
+          x: { ticks:{ color:"#9ba3b0" }, grid:{ display:false } }
+        }
+      }
+    });
+
+    // Donut
+    new Chart(document.getElementById("studentDonut"), {
+      type: "doughnut",
+      data: {
+        labels: ["Present","Absent"],
+        datasets: [{ data:[totalP, totalA],
+                     backgroundColor:["#00ff94","#ff4d6d"],
+                     borderWidth:0, hoverOffset:8 }]
+      },
+      options: { responsive:true, cutout:"65%",
+                 plugins:{ legend:{ labels:{ color:"#9ba3b0" } } } }
+    });
+
+    // Per-course tables
+    const wrap = document.getElementById("courseTables");
+    labels.forEach(c => {
+      const cd = courses[c];
+      const col = cd.percentage >= 75 ? "var(--success)" :
+                  cd.percentage >= 50 ? "var(--warning)" : "var(--danger)";
+      const rows = cd.records.map(r => `
+        <tr>
+          <td>${r.Date}</td><td>${r.Time}</td>
+          <td><span class="status-badge ${r.Status.toLowerCase()}">${r.Status}</span></td>
+        </tr>`).join("") || `<tr><td colspan="3" style="color:var(--muted);text-align:center">No records</td></tr>`;
+
+      wrap.innerHTML += `
+        <div class="chart-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <h2>${c}</h2>
+            <span style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:${col}">
+              ${cd.percentage}%
+            </span>
+          </div>
+          <div style="display:flex;gap:1.5rem;margin-bottom:1rem;font-size:0.82rem">
+            <span style="color:var(--success)">✅ Present: ${cd.present}</span>
+            <span style="color:var(--danger)">❌ Absent: ${cd.absent}</span>
+          </div>
+          <table class="log-table">
+            <thead><tr><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    });
+  }
+  </script>
+</body>
+</html>

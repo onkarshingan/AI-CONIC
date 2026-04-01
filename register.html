@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register Student – AttendAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="page-register">
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-text">AttendAI</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/register" class="active">Register</a></li>
+      <li><a href="/attendance">Attendance</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/settings">Settings</a></li>
+    </ul>
+  </nav>
+
+  <main class="page-main">
+    <div class="page-header">
+      <h1>Register <span class="accent-text">Student</span></h1>
+      <p>Capture 20 face images and save student details.</p>
+    </div>
+
+    <div class="register-layout">
+
+      <!-- ── WEBCAM ─────────────────────────────────────────────── -->
+      <div class="reg-cam-panel">
+        <div class="cam-frame">
+          <video id="regWebcam" autoplay playsinline muted></video>
+          <canvas id="regCanvas" style="display:none"></canvas>
+          <div class="cam-overlay">
+            <div class="scan-line"></div>
+            <div class="corner tl"></div><div class="corner tr"></div>
+            <div class="corner bl"></div><div class="corner br"></div>
+          </div>
+        </div>
+        <div class="capture-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <span id="captureCount">0 / 20 images captured</span>
+        </div>
+        <div class="thumbnail-strip" id="thumbnailStrip"></div>
+        <button class="btn btn-primary wide" id="captureBtn" disabled>
+          📸 &nbsp; Capture Image
+        </button>
+        <button class="btn btn-ghost wide" id="autoCapBtn" disabled>
+          ⚡ Auto-Capture (20 images)
+        </button>
+      </div>
+
+      <!-- ── FORM ──────────────────────────────────────────────── -->
+      <div class="reg-form-panel">
+        <div class="form-card">
+          <h2>Student Details</h2>
+
+          <div class="form-group">
+            <label>Student ID</label>
+            <input type="text" id="studentId" placeholder="e.g. 101" />
+          </div>
+
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="studentName" placeholder="e.g. Onkar Sharma" />
+          </div>
+
+          <div class="form-group">
+            <label>Parent Email</label>
+            <input type="email" id="parentEmail" placeholder="parent@email.com" />
+          </div>
+
+          <div class="form-group">
+            <label>Enrolled Courses</label>
+            <div class="course-checkboxes" id="courseCheckboxes"></div>
+          </div>
+
+          <button class="btn btn-primary wide" id="registerBtn" disabled>
+            ✅ &nbsp; Register Student
+          </button>
+
+          <div id="regMessage" class="reg-message"></div>
+        </div>
+
+        <!-- Registered students mini-list -->
+        <div class="form-card" style="margin-top:1.5rem;">
+          <h2>Registered Students</h2>
+          <div id="studentsList" class="students-mini-list">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+  // ── Globals ────────────────────────────────────────────────────────────────
+  let capturedImages = [];
+  let stream         = null;
+  let autoInterval   = null;
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  window.addEventListener("DOMContentLoaded", async () => {
+    await startCamera();
+    await loadCourses();
+    await loadStudents();
+  });
+
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      document.getElementById("regWebcam").srcObject = stream;
+      document.getElementById("captureBtn").disabled = false;
+      document.getElementById("autoCapBtn").disabled = false;
+    } catch {
+      alert("Camera access denied. Please allow webcam access.");
+    }
+  }
+
+  async function loadCourses() {
+    const res     = await fetch("/api/courses");
+    const courses = await res.json();
+    const wrap    = document.getElementById("courseCheckboxes");
+    wrap.innerHTML = courses.map(c => `
+      <label class="course-label">
+        <input type="checkbox" value="${c}" /> ${c}
+      </label>`).join("");
+  }
+
+  async function loadStudents() {
+    const res  = await fetch("/api/students");
+    const list = await res.json();
+    const el   = document.getElementById("studentsList");
+    if (!list.length) { el.innerHTML = "<em>No students registered yet.</em>"; return; }
+    el.innerHTML = list.map(s => `
+      <div class="student-chip">
+        <span class="chip-id">#${s.Student_ID}</span>
+        <span class="chip-name">${s.Name}</span>
+        <span class="chip-courses">${s.Courses}</span>
+      </div>`).join("");
+  }
+
+  // ── Capture image ──────────────────────────────────────────────────────────
+  function captureImage() {
+    if (capturedImages.length >= 20) return;
+    const video  = document.getElementById("regWebcam");
+    const canvas = document.getElementById("regCanvas");
+    canvas.width  = video.videoWidth  || 320;
+    canvas.height = video.videoHeight || 240;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    capturedImages.push(dataUrl);
+    updateProgress();
+    addThumbnail(dataUrl);
+    if (capturedImages.length === 20) {
+      clearInterval(autoInterval);
+      document.getElementById("registerBtn").disabled = false;
+    }
+  }
+
+  function updateProgress() {
+    const n    = capturedImages.length;
+    const pct  = (n / 20) * 100;
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("captureCount").textContent  = `${n} / 20 images captured`;
+  }
+
+  function addThumbnail(dataUrl) {
+    const strip = document.getElementById("thumbnailStrip");
+    const img   = document.createElement("img");
+    img.src     = dataUrl;
+    img.className = "thumb";
+    strip.appendChild(img);
+    strip.scrollLeft = strip.scrollWidth;
+  }
+
+  document.getElementById("captureBtn").addEventListener("click", captureImage);
+
+  document.getElementById("autoCapBtn").addEventListener("click", () => {
+    capturedImages = [];
+    document.getElementById("thumbnailStrip").innerHTML = "";
+    updateProgress();
+    let count = 0;
+    autoInterval = setInterval(() => {
+      captureImage();
+      count++;
+      if (count >= 20) clearInterval(autoInterval);
+    }, 300);
+  });
+
+  // ── Register ───────────────────────────────────────────────────────────────
+  document.getElementById("registerBtn").addEventListener("click", async () => {
+    const id      = document.getElementById("studentId").value.trim();
+    const name    = document.getElementById("studentName").value.trim();
+    const email   = document.getElementById("parentEmail").value.trim();
+    const courses = [...document.querySelectorAll(".course-checkboxes input:checked")]
+                      .map(cb => cb.value);
+
+    if (!id || !name || !email || !courses.length) {
+      showMsg("Please fill all fields and select at least one course.", "error");
+      return;
+    }
+    if (capturedImages.length < 20) {
+      showMsg("Please capture 20 images before registering.", "error");
+      return;
+    }
+
+    const btn = document.getElementById("registerBtn");
+    btn.textContent = "Registering…";
+    btn.disabled    = true;
+
+    const res  = await fetch("/api/register", {
+      method : "POST",
+      headers: { "Content-Type": "application/json" },
+      body   : JSON.stringify({ student_id: id, name, parent_email: email,
+                                courses, images: capturedImages })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showMsg(`✅ ${data.message}`, "success");
+      capturedImages = [];
+      document.getElementById("thumbnailStrip").innerHTML = "";
+      updateProgress();
+      document.getElementById("registerBtn").disabled = true;
+      btn.textContent = "✅  Register Student";
+      await loadStudents();
+    } else {
+      showMsg("❌ " + data.message, "error");
+      btn.disabled    = false;
+      btn.textContent = "✅  Register Student";
+    }
+  });
+
+  function showMsg(text, type) {
+    const el = document.getElementById("regMessage");
+    el.textContent  = text;
+    el.className    = `reg-message ${type}`;
+    setTimeout(() => { el.textContent = ""; el.className = "reg-message"; }, 5000);
+  }
+  </script>
+</body>
+</html>

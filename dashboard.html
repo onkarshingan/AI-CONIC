@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – AttendAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="page-dashboard">
+
+  <nav class="navbar">
+    <div class="nav-brand"><span class="brand-icon">⬡</span><span class="brand-text">AttendAI</span></div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/register">Register</a></li>
+      <li><a href="/attendance">Attendance</a></li>
+      <li><a href="/dashboard" class="active">Dashboard</a></li>
+      <li><a href="/settings">Settings</a></li>
+    </ul>
+  </nav>
+
+  <main class="page-main">
+    <div class="page-header">
+      <h1>Analytics <span class="accent-text">Dashboard</span></h1>
+      <p>Real-time attendance overview across all courses.</p>
+      <button class="btn btn-ghost small" onclick="loadDashboard()">🔄 Refresh</button>
+    </div>
+
+    <!-- ── KPI CARDS ──────────────────────────────────────────────── -->
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--kpi-accent:#00e5ff">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-value" id="totalStudents">—</div>
+        <div class="kpi-label">Total Students</div>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:#00ff94">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-value" id="presentToday">—</div>
+        <div class="kpi-label">Present Today</div>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:#ff4d6d">
+        <div class="kpi-icon">❌</div>
+        <div class="kpi-value" id="absentToday">—</div>
+        <div class="kpi-label">Absent Today</div>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:#ffb703">
+        <div class="kpi-icon">📚</div>
+        <div class="kpi-value" id="totalCourses">—</div>
+        <div class="kpi-label">Active Courses</div>
+      </div>
+    </div>
+
+    <!-- ── CHARTS ─────────────────────────────────────────────────── -->
+    <div class="charts-grid">
+
+      <div class="chart-card">
+        <h2>Course-wise Attendance %</h2>
+        <canvas id="courseBarChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h2>Present vs Absent (Today)</h2>
+        <canvas id="donutChart"></canvas>
+      </div>
+
+    </div>
+
+    <!-- ── COURSE TABLE ───────────────────────────────────────────── -->
+    <div class="chart-card full-width">
+      <h2>Course Breakdown</h2>
+      <table class="log-table">
+        <thead>
+          <tr><th>Course</th><th>Present</th><th>Absent</th><th>Attendance %</th><th>Bar</th></tr>
+        </thead>
+        <tbody id="courseTableBody"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+  let barChartInst   = null;
+  let donutChartInst = null;
+
+  const CHART_COLORS = ["#00e5ff","#00ff94","#ffb703","#ff4d6d","#b388ff","#69d2e7"];
+
+  window.addEventListener("DOMContentLoaded", loadDashboard);
+
+  async function loadDashboard() {
+    const res  = await fetch("/api/dashboard");
+    const data = await res.json();
+
+    document.getElementById("totalStudents").textContent = data.total_students;
+    document.getElementById("presentToday").textContent  = data.present_today;
+    document.getElementById("absentToday").textContent   = data.absent_today;
+    document.getElementById("totalCourses").textContent  = data.courses.length;
+
+    buildBarChart(data);
+    buildDonut(data);
+    buildTable(data);
+  }
+
+  function buildBarChart(data) {
+    const ctx     = document.getElementById("courseBarChart").getContext("2d");
+    const labels  = data.courses;
+    const values  = labels.map(c => data.course_stats[c]?.percentage ?? 0);
+
+    if (barChartInst) barChartInst.destroy();
+    barChartInst = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Attendance %",
+          data : values,
+          backgroundColor: CHART_COLORS,
+          borderRadius   : 8,
+          borderSkipped  : false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true, max: 100,
+            ticks: { color: "#9ba3b0" },
+            grid : { color: "rgba(255,255,255,0.05)" }
+          },
+          x: { ticks: { color: "#9ba3b0" }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function buildDonut(data) {
+    const ctx = document.getElementById("donutChart").getContext("2d");
+    if (donutChartInst) donutChartInst.destroy();
+    donutChartInst = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels  : ["Present", "Absent"],
+        datasets: [{
+          data           : [data.present_today, data.absent_today],
+          backgroundColor: ["#00ff94", "#ff4d6d"],
+          borderWidth    : 0,
+          hoverOffset    : 8
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout    : "65%",
+        plugins   : {
+          legend: { labels: { color: "#9ba3b0" } }
+        }
+      }
+    });
+  }
+
+  function buildTable(data) {
+    const tbody = document.getElementById("courseTableBody");
+    tbody.innerHTML = data.courses.map((c, i) => {
+      const s   = data.course_stats[c] || { present:0, absent:0, percentage:0 };
+      const pct = s.percentage;
+      const col = pct >= 75 ? "#00ff94" : pct >= 50 ? "#ffb703" : "#ff4d6d";
+      return `
+        <tr>
+          <td><strong>${c}</strong></td>
+          <td>${s.present}</td>
+          <td>${s.absent}</td>
+          <td style="color:${col};font-weight:700">${pct}%</td>
+          <td>
+            <div style="background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;height:8px">
+              <div style="width:${pct}%;height:100%;background:${col};border-radius:4px;transition:width 1s"></div>
+            </div>
+          </td>
+        </tr>`;
+    }).join("");
+  }
+  </script>
+</body>
+</html>

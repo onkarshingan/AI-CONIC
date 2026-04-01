@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Smart Attendance System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="page-home">
+
+  <!-- ── NAV ─────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-text">AttendAI</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/"          class="active">Home</a></li>
+      <li><a href="/register">Register</a></li>
+      <li><a href="/attendance">Attendance</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/settings">Settings</a></li>
+    </ul>
+    <div class="nav-indicator"></div>
+  </nav>
+
+  <!-- ── HERO ─────────────────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-content">
+      <div class="hero-badge">Computer Vision · AI · Flask</div>
+      <h1 class="hero-title">
+        AI-Powered<br/>
+        <span class="accent-text">Smart Attendance</span><br/>
+        System
+      </h1>
+      <p class="hero-sub">
+        Automate classroom attendance using real-time facial recognition.
+        Zero paperwork. Zero proxies.
+      </p>
+      <div class="hero-actions">
+        <a href="/attendance" class="btn btn-primary">▶ Start Scanning</a>
+        <a href="/register"   class="btn btn-ghost">Register Student</a>
+      </div>
+    </div>
+
+    <!-- Live webcam preview on home -->
+    <div class="hero-cam-wrap">
+      <div class="cam-frame">
+        <video id="homeWebcam" autoplay playsinline muted></video>
+        <div class="cam-overlay">
+          <div class="scan-line"></div>
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+        </div>
+        <div class="cam-status" id="camStatus">Initialising camera…</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── FEATURE CARDS ─────────────────────────────────────────────── -->
+  <section class="features">
+    <h2 class="section-title">How It Works</h2>
+    <div class="cards-grid">
+      <div class="card card--glow" style="--card-hue:210;">
+        <div class="card-num">01</div>
+        <div class="card-icon">📸</div>
+        <h3>Image Capture</h3>
+        <p>Register each student by capturing 20 face images via webcam. Stored locally in the dataset folder.</p>
+      </div>
+      <div class="card card--glow" style="--card-hue:160;">
+        <div class="card-num">02</div>
+        <div class="card-icon">🧠</div>
+        <h3>Face Recognition</h3>
+        <p>OpenCV + face_recognition encode and compare faces in real-time with sub-second latency.</p>
+      </div>
+      <div class="card card--glow" style="--card-hue:280;">
+        <div class="card-num">03</div>
+        <div class="card-icon">📊</div>
+        <h3>Excel Reports</h3>
+        <p>Attendance auto-saved to <code>attendance.xlsx</code> with a sheet per course and date-stamped rows.</p>
+      </div>
+      <div class="card card--glow" style="--card-hue:30;">
+        <div class="card-num">04</div>
+        <div class="card-icon">📧</div>
+        <h3>Parent Alerts</h3>
+        <p>Automatic SMTP email sent to parents when their child misses a class. Instant and reliable.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TECH STACK ────────────────────────────────────────────────── -->
+  <section class="tech-stack">
+    <h2 class="section-title">Technology Stack</h2>
+    <div class="tech-grid">
+      <div class="tech-pill">Python 3</div>
+      <div class="tech-pill">Flask</div>
+      <div class="tech-pill">OpenCV</div>
+      <div class="tech-pill">face_recognition</div>
+      <div class="tech-pill">Pandas</div>
+      <div class="tech-pill">OpenPyXL</div>
+      <div class="tech-pill">SMTP</div>
+      <div class="tech-pill">JavaScript</div>
+      <div class="tech-pill">HTML/CSS</div>
+    </div>
+  </section>
+
+  <!-- ── FLOW DIAGRAM ──────────────────────────────────────────────── -->
+  <section class="flow-section">
+    <h2 class="section-title">Data Flow</h2>
+    <div class="flow-diagram">
+      <div class="flow-step">Student Registration</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">Images → dataset/ &nbsp;|&nbsp; Details → students.csv</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">AI Model loads face encodings</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">Webcam detects &amp; recognises face</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">Attendance recorded → attendance.xlsx</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step highlight-step">If Absent → Email notification to parent</div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>AI Mini Project · College Computer Science Department · 2026</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    // Start home page webcam preview
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        const v = document.getElementById("homeWebcam");
+        v.srcObject = stream;
+        document.getElementById("camStatus").textContent = "Camera live ✓";
+        document.getElementById("camStatus").classList.add("cam-ok");
+      })
+      .catch(() => {
+        document.getElementById("camStatus").textContent = "Camera not available";
+      });
+  </script>
+</body>
+</html>

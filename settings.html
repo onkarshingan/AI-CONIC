@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings – AttendAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="page-settings">
+
+  <nav class="navbar">
+    <div class="nav-brand"><span class="brand-icon">⬡</span><span class="brand-text">AttendAI</span></div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/register">Register</a></li>
+      <li><a href="/attendance">Attendance</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/settings" class="active">Settings</a></li>
+    </ul>
+  </nav>
+
+  <main class="page-main">
+    <div class="page-header">
+      <h1>System <span class="accent-text">Settings</span></h1>
+      <p>Manage courses, students, and email configuration.</p>
+    </div>
+
+    <div class="settings-grid">
+
+      <!-- ── COURSE MANAGEMENT ──────────────────────────────────── -->
+      <div class="form-card">
+        <h2>📚 Course Management</h2>
+        <div class="form-group">
+          <label>Add New Course</label>
+          <div class="controls-row">
+            <input type="text" id="newCourse" placeholder="e.g. Cloud Computing" style="flex:1"/>
+            <button class="btn btn-primary small" onclick="addCourse()">+ Add</button>
+          </div>
+        </div>
+        <div id="addCourseMsg" class="reg-message"></div>
+        <h3 style="margin:1.25rem 0 0.75rem;font-size:0.85rem;color:var(--muted)">Active Courses</h3>
+        <div id="coursesList" class="tags-wrap">Loading…</div>
+      </div>
+
+      <!-- ── EMAIL CONFIGURATION ────────────────────────────────── -->
+      <div class="form-card">
+        <h2>📧 Email Configuration</h2>
+        <p style="color:var(--muted);font-size:0.82rem;margin-bottom:1rem">
+          Credentials are read from environment variables.<br/>
+          Set <code>EMAIL_ADDRESS</code> and <code>EMAIL_PASSWORD</code> before starting the server.
+        </p>
+        <div class="form-group">
+          <label>Current Sender</label>
+          <div class="config-display" id="emailDisplay">Loading…</div>
+        </div>
+        <div class="form-group">
+          <label>Send Test Email To</label>
+          <div class="controls-row">
+            <input type="email" id="testEmail" placeholder="test@example.com" style="flex:1"/>
+            <button class="btn btn-ghost small" onclick="sendTestEmail()">Send Test</button>
+          </div>
+        </div>
+        <div id="emailMsg" class="reg-message"></div>
+
+        <div class="info-block" style="margin-top:1rem">
+          <strong>Gmail Setup:</strong>
+          <ol style="margin:0.5rem 0 0 1.2rem;color:var(--muted);font-size:0.82rem;line-height:2">
+            <li>Enable 2-Factor Authentication on Gmail</li>
+            <li>Go to Google Account → Security → App Passwords</li>
+            <li>Generate a 16-character App Password</li>
+            <li>Set <code>EMAIL_PASSWORD</code> to that value</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- ── STUDENT MANAGEMENT ─────────────────────────────────── -->
+      <div class="form-card full-span">
+        <h2>👥 Student Management</h2>
+        <div style="margin-bottom:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
+          <input type="text" id="studentSearch" placeholder="Search by name or ID…"
+                 oninput="filterStudents()" style="width:240px"/>
+          <button class="btn btn-ghost small" onclick="loadStudents()">🔄 Refresh</button>
+          <a href="/api/download_excel" class="btn btn-ghost small">⬇ Download Excel</a>
+        </div>
+        <div class="log-table-wrap" style="max-height:420px">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Name</th><th>Parent Email</th><th>Courses</th>
+                <th>Dataset Images</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── SYSTEM INFO ─────────────────────────────────────────── -->
+      <div class="form-card">
+        <h2>⚙️ System Info</h2>
+        <div id="sysInfo" class="sys-info-grid">Loading…</div>
+      </div>
+
+      <!-- ── DANGER ZONE ────────────────────────────────────────── -->
+      <div class="form-card danger-card">
+        <h2>⚠️ Danger Zone</h2>
+        <p style="color:var(--muted);font-size:0.82rem;margin-bottom:1rem">
+          These actions are irreversible. Use with caution.
+        </p>
+        <button class="btn btn-danger wide" onclick="confirmClearAttendance()">
+          🗑 Clear Today's Attendance Records
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── CONFIRM MODAL ──────────────────────────────────────────── -->
+  <div class="modal-backdrop" id="confirmModal" style="display:none">
+    <div class="modal-box">
+      <h3 id="modalTitle">Confirm Action</h3>
+      <p  id="modalBody">Are you sure?</p>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger" id="modalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+  let allStudents = [];
+
+  window.addEventListener("DOMContentLoaded", () => {
+    loadCourses();
+    loadStudents();
+    loadSysInfo();
+    loadEmailConfig();
+  });
+
+  // ── Courses ────────────────────────────────────────────────────────────────
+
+  async function loadCourses() {
+    const courses = await apiGet("/api/courses");
+    const wrap    = document.getElementById("coursesList");
+    wrap.innerHTML = (courses || []).map(c =>
+      `<span class="tech-pill">${c}</span>`).join("") || "<em>None</em>";
+    document.getElementById("emailDisplay");
+  }
+
+  async function addCourse() {
+    const name = document.getElementById("newCourse").value.trim();
+    if (!name) return;
+    const res = await apiPost("/api/add_course", { course: name });
+    if (!res) return;
+    const el  = document.getElementById("addCourseMsg");
+    el.textContent = res.success ? "✅ " + res.message : "❌ " + res.message;
+    el.className   = `reg-message ${res.success ? "success" : "error"}`;
+    setTimeout(() => { el.textContent = ""; el.className = "reg-message"; }, 4000);
+    if (res.success) { document.getElementById("newCourse").value = ""; loadCourses(); }
+  }
+
+  // ── Email ──────────────────────────────────────────────────────────────────
+
+  async function loadEmailConfig() {
+    const data = await apiGet("/api/dashboard"); // reuse – just need to verify server
+    const el   = document.getElementById("emailDisplay");
+    el.textContent = "Configured via environment variable (EMAIL_ADDRESS)";
+  }
+
+  async function sendTestEmail() {
+    const email = document.getElementById("testEmail").value.trim();
+    if (!email) { showToast("Enter an email address.", "error"); return; }
+    const res   = await apiPost("/api/test_email", { email });
+    if (!res) return;
+    const el = document.getElementById("emailMsg");
+    el.textContent = res.success ? "✅ " + res.message : "❌ " + res.message;
+    el.className   = `reg-message ${res.success ? "success" : "error"}`;
+    setTimeout(() => { el.textContent = ""; el.className = "reg-message"; }, 5000);
+  }
+
+  // ── Students table ─────────────────────────────────────────────────────────
+
+  async function loadStudents() {
+    allStudents = await apiGet("/api/students") || [];
+    renderStudents(allStudents);
+  }
+
+  function filterStudents() {
+    const q = document.getElementById("studentSearch").value.toLowerCase();
+    renderStudents(allStudents.filter(s =>
+      s.Name.toLowerCase().includes(q) || String(s.Student_ID).includes(q)
+    ));
+  }
+
+  function renderStudents(list) {
+    const tbody = document.getElementById("studentsTableBody");
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted)">No students found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(s => `
+      <tr>
+        <td><strong>#${s.Student_ID}</strong></td>
+        <td>${s.Name}</td>
+        <td style="color:var(--muted);font-size:0.8rem">${s.Parent_Email}</td>
+        <td>
+          ${(s.Courses || "").split(",").map(c =>
+            `<span class="tech-pill" style="font-size:0.7rem;padding:2px 8px">${c.trim()}</span>`
+          ).join(" ")}
+        </td>
+        <td>
+          <a href="/student_report/${s.Student_ID}" target="_blank"
+             style="font-size:0.78rem;color:var(--accent)">View Report</a>
+        </td>
+        <td>
+          <button class="btn btn-danger small"
+                  onclick="confirmDelete('${s.Student_ID}', '${s.Name}')">
+            🗑 Delete
+          </button>
+        </td>
+      </tr>`).join("");
+  }
+
+  // ── System info ────────────────────────────────────────────────────────────
+
+  async function loadSysInfo() {
+    const data = await apiGet("/api/dashboard");
+    const el   = document.getElementById("sysInfo");
+    if (!data) { el.textContent = "Unable to load."; return; }
+    el.innerHTML = `
+      <div class="sys-row"><span>Total Students</span><strong>${data.total_students}</strong></div>
+      <div class="sys-row"><span>Active Courses</span><strong>${data.courses.length}</strong></div>
+      <div class="sys-row"><span>Present Today</span><strong style="color:var(--success)">${data.present_today}</strong></div>
+      <div class="sys-row"><span>Absent Today</span><strong style="color:var(--danger)">${data.absent_today}</strong></div>
+      <div class="sys-row"><span>Mode</span><strong style="color:var(--warning)">Demo / CV</strong></div>
+    `;
+  }
+
+  // ── Modals ─────────────────────────────────────────────────────────────────
+
+  let pendingAction = null;
+
+  function confirmDelete(id, name) {
+    document.getElementById("modalTitle").textContent = "Delete Student";
+    document.getElementById("modalBody").textContent  =
+      `Delete ${name} (#${id}) and all their images? This cannot be undone.`;
+    document.getElementById("modalConfirmBtn").onclick = () => deleteStudent(id);
+    document.getElementById("confirmModal").style.display = "flex";
+  }
+
+  function confirmClearAttendance() {
+    document.getElementById("modalTitle").textContent = "Clear Today's Attendance";
+    document.getElementById("modalBody").textContent  =
+      "This will remove all attendance records for today. Are you sure?";
+    document.getElementById("modalConfirmBtn").onclick = () => {
+      showToast("Feature coming soon – requires backend endpoint.", "info");
+      closeModal();
+    };
+    document.getElementById("confirmModal").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("confirmModal").style.display = "none";
+  }
+
+  async function deleteStudent(id) {
+    closeModal();
+    const res = await apiPost("/api/delete_student", { student_id: id });
+    if (!res) return;
+    showToast(res.success ? res.message : res.message,
+              res.success ? "success" : "error");
+    if (res.success) loadStudents();
+  }
+  </script>
+
+  <style>
+  .settings-grid {
+    display              : grid;
+    grid-template-columns: 1fr 1fr;
+    gap                  : 1.5rem;
+  }
+  .full-span { grid-column: 1 / -1; }
+
+  .tags-wrap {
+    display  : flex;
+    flex-wrap: wrap;
+    gap      : 0.5rem;
+  }
+
+  .config-display {
+    background   : var(--surface2);
+    border       : 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding      : 0.6rem 0.9rem;
+    font-size    : 0.82rem;
+    color        : var(--muted);
+  }
+
+  .info-block {
+    background   : rgba(0,229,255,0.05);
+    border       : 1px solid rgba(0,229,255,0.15);
+    border-radius: var(--radius-sm);
+    padding      : 1rem;
+    font-size    : 0.82rem;
+    color        : var(--text);
+  }
+
+  .danger-card { border-color: rgba(255,77,109,0.25); }
+  .danger-card h2 { color: var(--danger); }
+
+  .sys-info-grid { display:flex; flex-direction:column; gap:0.5rem; }
+  .sys-row {
+    display        : flex;
+    justify-content: space-between;
+    align-items    : center;
+    padding        : 0.5rem 0;
+    border-bottom  : 1px solid var(--border);
+    font-size      : 0.85rem;
+  }
+  .sys-row span { color: var(--muted); }
+
+  /* Modal */
+  .modal-backdrop {
+    position       : fixed;
+    inset          : 0;
+    background     : rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index        : 200;
+    display        : flex;
+    align-items    : center;
+    justify-content: center;
+  }
+  .modal-box {
+    background   : var(--surface);
+    border       : 1px solid var(--border);
+    border-radius: var(--radius);
+    padding      : 2rem;
+    max-width    : 420px;
+    width        : 90%;
+    animation    : fadeInUp 0.25s ease;
+  }
+  .modal-box h3 { font-family:var(--font-display);font-size:1.2rem;margin-bottom:0.75rem; }
+  .modal-box p  { color:var(--muted);font-size:0.88rem; }
+
+  @media (max-width:900px) {
+    .settings-grid { grid-template-columns:1fr; }
+    .full-span { grid-column: auto; }
+  }
+  </style>
+</body>
+</html>
